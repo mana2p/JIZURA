@@ -866,7 +866,7 @@ function renderLines() {
       sel.dataset.k = String(k);
       // カットの開始時刻 (詳細モード): the first cut starts with the line; the others can be typed (empty = automatic)
       if (k > 0) {
-        const wrap = document.createElement('span');
+        const wrap = document.createElement('div');
         wrap.className = 'cut-time-wrap pro-only';
         const btnPrev = document.createElement('button');
         btnPrev.type = 'button';

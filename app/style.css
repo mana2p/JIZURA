@@ -120,7 +120,9 @@ button.tap { font: 700 18px/1 var(--mono); letter-spacing: 0.2em; padding: 16px;
 .ln .no { font: 500 11px var(--mono); color: var(--faint); text-align: right; }
 .ln .time-wrap, .ln .cut-time-wrap { display: inline-flex; align-items: center; position: relative; }
 .ln .time-wrap { width: 100%; }
-.ln .cut-time-wrap { width: 96px; flex: none; }
+.ln .cut-time-wrap { width: 96px; flex: none; border: none !important; padding: 0 !important; background: transparent !important; }
+.ln .cuts span.cut-time-wrap { border: none !important; padding: 0 !important; background: transparent !important; }
+.ln .cuts span.cut-time-wrap:hover { border: none !important; }
 .ln .time-btn {
   background: var(--raised); border: 1px solid var(--line); color: var(--muted); cursor: pointer;
   padding: 0 4px; height: 24px; display: inline-flex; align-items: center; justify-content: center;
