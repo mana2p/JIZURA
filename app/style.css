@@ -128,6 +128,7 @@ button.tap { font: 700 18px/1 var(--mono); letter-spacing: 0.2em; padding: 16px;
 .ln .cuts span:hover { color: var(--text); border-color: var(--amber); }
 .ln .cuts select.cut-lay { font-size: 10px; padding: 1px 4px; max-width: 112px; border: 1px solid var(--line2); border-radius: 2px; background: var(--raised); color: var(--text); }
 .ln .cuts select.cut-lay.is-forced { border-color: var(--amber); color: var(--text); }
+.warn-speed { display: inline-flex; align-items: center; gap: 2px; font-size: 10px; line-height: 14px; padding: 0 4px; border-radius: 3px; background: rgba(255, 90, 106, 0.18); border: 1px solid var(--danger, #ff5a6a); color: #ff8a96; font-family: var(--mono); font-weight: 600; cursor: help; vertical-align: 1px; margin-left: 6px; }
 
 /* ---------- stage ---------- */
 .col-stage { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; min-width: 0; }

@@ -12,6 +12,7 @@ const ICON = {
   lock: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>',
   pen: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 13l1-3.5L11 2.5l2.5 2.5L6.5 12z"/><path d="M9.5 4l2.5 2.5"/></svg>',
   tap: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="2.2" fill="currentColor"/><circle cx="8" cy="8" r="5.5"/></svg>',
+  tapOne: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6.2"/><path d="M7 6.5l1.6-.9v5.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   range: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 3v10M13 3v10"/><path d="M5.5 8h5M8.5 5.5L11 8l-2.5 2.5"/></svg>',
 };
 
@@ -358,6 +359,11 @@ function drawTimeline() {
       x.save(); x.beginPath(); x.rect(x0, top, x1 - x0 - 3, bot - top); x.clip();
       x.fillText(TL.z > 3 && cut.text ? cut.text : ((J.LAYOUTS[cut.layout] || {}).name || cut.layout), x0 + 5 * dpr, top + 13 * dpr); x.restore();
     }
+    const cln = S.plan.lines[cut.line];
+    if (cln && !cln.interlude) {
+      const dur = Math.max(0.05, cln.end - cln.start), chars = [...(cln.text || '').replace(/\s/g, '')].length;
+      if (chars >= 3 && chars / dur >= 8.0) { x.fillStyle = '#ff5a6a'; x.fillRect(x0, top, Math.max(1, x1 - x0 - 1), 2 * dpr); }
+    }
   }
   x.font = `${10 * dpr}px monospace`;
   const LT = S.project.timing.lineTimes || {};
@@ -654,14 +660,18 @@ function renderLines() {
     const li = document.createElement('li'); li.className = 'ln' + (ln.interlude ? ' is-inter' : '') + (R && i >= R.from && i <= R.to ? ' in-range' : '');
     const manual = S.project.timing.lineTimes && S.project.timing.lineTimes[i] != null;
     const label = ln.interlude ? `〔間奏${ln.secs ? ' ' + ln.secs + '秒' : ''}〕` : ln.text;
+    const dur = Math.max(0.05, ln.end - ln.start), chars = [...(ln.text || '').replace(/\s/g, '')].length;
+    const cps = !ln.interlude && chars >= 3 ? chars / dur : 0;
+    const speedBadge = cps >= 8.0 ? `<span class="badge warn-speed" title="読み切れない速さです（${cps.toFixed(1)}文字/秒・表示時間${dur.toFixed(2)}秒で${chars}文字）">⚠️ ${cps.toFixed(1)}字/s</span>` : '';
     li.innerHTML = `<span class="no">${String(i + 1).padStart(2, '0')}</span>
       <input class="time mono" type="number" step="0.01" min="0" value="${ln.start.toFixed(2)}" title="開始（秒）${manual ? '・手動' : '・自動'}" aria-label="${i + 1}行目の開始秒" style="${manual ? 'border-color:var(--cyan)' : ''}">
-      <span class="txt" title="${escapeHtml(label)}">${escapeHtml(label)}</span>
+      <span class="txt" title="${escapeHtml(label)}">${escapeHtml(label)}${speedBadge}</span>
       <div class="meta"><span class="cuts"></span>
       <span class="tools">
         <button class="icon ghost edit" title="この行の歌詞を直す" aria-label="${i + 1}行目の歌詞を直す">${ICON.pen}</button>
         ${ln.interlude ? '' : `<select class="ncut" aria-label="${i + 1}行目のカット数">${cutOpts}</select>`}
         ${ln.interlude ? '' : `<select class="lay pro-only" aria-label="レイアウト指定"></select>`}
+        <button class="icon ghost tapone" title="この1行だけタップで打ち直す（直前から再生して1回叩くだけ）" aria-label="${i + 1}行目だけタップ">${ICON.tapOne}</button>
         <button class="icon ghost tapfrom" title="この行からタップで同期し直す" aria-label="${i + 1}行目からタップ">${ICON.tap}</button>
         <button class="icon ghost rng" title="書き出す範囲にする（Shift+クリックで範囲を広げる）" aria-pressed="${R && i >= R.from && i <= R.to ? 'true' : 'false'}" aria-label="${i + 1}行目を書き出す範囲に">${ICON.range}</button>
         ${ln.interlude ? '' : `<button class="icon ghost dice" title="この行を再抽選">${ICON.dice}</button>`}
@@ -692,6 +702,7 @@ function renderLines() {
     q('.edit').addEventListener('click', () => editLine(li, ln));
     if (q('.lay')) q('.lay').addEventListener('change', e => { setOv(i, { layout: e.target.value || undefined }); replan(); });
     if (q('.ncut')) q('.ncut').addEventListener('change', e => { remember(); setOv(i, { cuts: +e.target.value || undefined, single: undefined }); replan(); commit(); seek(ln.start + 0.001); });
+    q('.tapone').addEventListener('click', () => startTapOne(i));
     q('.tapfrom').addEventListener('click', () => startTap(i));
     q('.rng').addEventListener('click', e => setExportRange(i, e.shiftKey));
     if (q('.dice')) q('.dice').addEventListener('click', () => { const cur = ov[i] || {}; setOv(i, { seed: (cur.seed | 0) + 1, lock: false, lockedSeed: undefined, lockedCuts: undefined }); replan(); seek(ln.start + 0.001); });
@@ -1480,6 +1491,25 @@ function offerShare(boxes, blob, name) {
 }
 
 /* ---------------- tap sync ---------------- */
+// 1行だけタップで打ち直す（直前から再生して1回叩くだけ）
+function startTapOne(idx) {
+  if (!S.plan.lines.length) return;
+  idx = J.clamp(idx | 0, 0, S.plan.lines.length - 1);
+  pushEdit();
+  const opt = tapOpts();
+  S.tap = { i: idx, from: idx, single: true, done: [], rate: opt.rate };
+  if (!S.project.timing.lineTimes) S.project.timing.lineTimes = {};
+  $('tapPanel').hidden = false; $('btnTap').setAttribute('aria-pressed', 'true');
+  $('tapPanel').classList.remove('compact');
+  $('tapRate').value = String(opt.rate); $('tapCount').checked = false;
+  const prev = idx > 0 ? S.plan.lines[idx - 1] : null, cur = S.plan.lines[idx];
+  const t0 = idx === 0 ? 0 : Math.max(0, (prev ? prev.start + 0.01 : 0), cur.start - 1.8);
+  pause(); seek(t0); updateTap();
+  $('tapBtn').focus();
+  toast(`${idx + 1}行目だけタップで打ち直します（歌の頭でスペースキーかボタンを押してください）`);
+  play();
+}
+
 // start from any line: playback begins a little before that line, earlier lines keep their times
 function startTap(from = 0) {
   if (!S.plan.lines.length) return;
@@ -1522,6 +1552,17 @@ function tapNow() {
   const LT = S.project.timing.lineTimes, i = S.tap.i, t = +S.t.toFixed(3);
   S.tap.done.push({ i, had: LT[i] });
   LT[i] = t;
+  if (S.tap.single) {
+    pause();
+    stopTap();
+    replan();
+    commit();
+    flushSave();
+    renderLines();
+    drawTimeline();
+    toast(`${i + 1}行目の開始秒を ${t.toFixed(2)} 秒に打ち直しました！`);
+    return;
+  }
   // later lines tapped earlier (a previous pass) must not come before this one
   for (const k of Object.keys(LT)) if (+k > i && LT[k] <= t + 0.2) delete LT[k];
   S.tap.i++; S.tap.cl = i; S.tap.ck = 1;
@@ -1565,7 +1606,8 @@ function stopTap() {
   $('tapPanel').hidden = true; $('btnTap').setAttribute('aria-pressed', 'false'); replan(); flushSave(); }
 function updateTap() {
   const ln = S.plan.lines[S.tap.i];
-  $('tapLine').textContent = ln ? `${S.tap.i + 1}. ${ln.interlude ? '〔間奏〕' : ln.text}` : '—';
+  const prefix = S.tap && S.tap.single ? '【1行打ち直し】' : '';
+  $('tapLine').textContent = ln ? `${prefix}${S.tap.i + 1}. ${ln.interlude ? '〔間奏〕' : ln.text}` : '—';
   const bb = $('tapBack'); if (bb) bb.disabled = !S.tap.done.length;
   $('tapPanel').classList.toggle('compact', S.tap.done.length >= 3);  // 最初の数回が終わったら説明を畳んで、固定しても邪魔にならないように
 }
@@ -1606,6 +1648,18 @@ function bind() {
   $('lineScale').addEventListener('change', e => { S.project.timing.lineScale = J.clamp(parseFloat(e.target.value) || 1, 0.3, 4); replan(); });
   $('snap').addEventListener('change', e => { S.project.timing.snap = e.target.checked; replan(); });
   $('btnResetTimes').addEventListener('click', () => { S.project.timing.lineTimes = {}; replan(); });
+  const btnDraft = $('btnDraftTimes');
+  if (btnDraft) btnDraft.addEventListener('click', () => {
+    if (!S.audio) { toast('曲を先に読み込んでください'); return; }
+    pushEdit();
+    const drafted = J.draftLineTimes(S.project, S.audio);
+    if (drafted && Object.keys(drafted).length) {
+      if (!S.project.timing.lineTimes) S.project.timing.lineTimes = {};
+      Object.assign(S.project.timing.lineTimes, drafted);
+      replan(); commit(); flushSave(); renderLines(); drawTimeline();
+      toast('🎵 曲の音の立ち上がり・ビートに合わせて全行の頭を下書きしました！');
+    }
+  });
   $('audioFile').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; if (f) loadAudioFile(f); });
   $('btnTap').addEventListener('click', () => (S.tap ? stopTap() : startTap()));
   $('tapBtn').addEventListener('click', tapNow);

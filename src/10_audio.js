@@ -130,4 +130,39 @@ J.beatGrid = (bpm, offset, duration) => {
   for (let t = offset; t < duration + 0.01; t += p) if (t >= 0) out.push(+t.toFixed(4));
   return out;
 };
+
+/* 曲のビート・オンセットから行頭タイミングを下書き */
+J.draftLineTimes = (project, audio) => {
+  if (!audio || !audio.duration) return null;
+  const parsed = J.parseLyrics(project.lyrics);
+  const lines = parsed.lines;
+  if (!lines.length) return {};
+  const beats = audio.beats || [];
+  const rate = audio.energyRate || 50;
+  const energy = audio.energy || [];
+  const tm = J.computeTiming(project, parsed, audio);
+  const out = {};
+  lines.forEach((ln, i) => {
+    let t = tm.starts[i] || 0;
+    if (beats.length) {
+      let bestB = null, minD = 0.35;
+      for (const b of beats) {
+        const d = Math.abs(b - t);
+        if (d < minD) { minD = d; bestB = b; }
+        if (b > t + 0.4) break;
+      }
+      if (bestB != null) t = bestB;
+    } else if (energy.length) {
+      const centerF = Math.round(t * rate);
+      const span = Math.round(0.25 * rate);
+      let maxE = 0, bestF = centerF;
+      for (let f = Math.max(0, centerF - span); f <= Math.min(energy.length - 1, centerF + span); f++) {
+        if (energy[f] > maxE) { maxE = energy[f]; bestF = f; }
+      }
+      if (maxE > 0.2) t = bestF / rate;
+    }
+    out[i] = +t.toFixed(2);
+  });
+  return out;
+};
 })();

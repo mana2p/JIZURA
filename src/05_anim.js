@@ -79,6 +79,21 @@ J.ENTER = {
     },
   },
 
+  ugahame: {
+    name: '歌ハメ', tags: ['pop', 'graphic', 'kinetic'],
+    apply(env, it, p) {
+      const n = (it._m || (it._m = J.measure(it))).lay.N;
+      if (n <= 0) return;
+      it.charFns.push((i, g) => {
+        const slot = i / n;
+        const q = J.clamp((p - slot) * n * 1.6);
+        if (q <= 0) return { hide: true };
+        const pop = q < 1 ? 1 + (1 - q) * 0.45 : 1;
+        return { s: pop, a: Math.min(1, q * 2) };
+      });
+    },
+  },
+
   pop: {
     name: 'ポップ',
     apply(env, it, p) {
