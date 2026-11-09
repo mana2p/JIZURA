@@ -341,15 +341,22 @@ J.plan = (project, audio) => {
     const rng = J.rng(lineSeed);
     if (ln.interlude) {                                    // [間奏]: background, decorations and screen effects only
       plan.lines.push({ index: li, src: ln.src, lrc: ln.lrc, text: '', interlude: true, secs: ln.secs, start: s, end: e, visEnd: e, note: null, impact: false, emph: [], chunks: [], seed: lineSeed });
-      const bg = ov.bg && J.BG[ov.bg] ? ov.bg : pickBg(rng, st, en, fx, bgHistory); bgHistory.push(bg);
+      const LS = Array.isArray(ov.lockedCuts) && ov.lockedCuts[0];
+      const bg = LS ? LS.bg : (ov.bg && J.BG[ov.bg] ? ov.bg : pickBg(rng, st, en, fx, bgHistory)); bgHistory.push(bg);
       const dur = e - s, showTitle = dur >= 6 && !!(title || artist);
-      plan.cuts.push(makeCut({ text: '', lineText: '', line: li, start: s, end: e, layout: 'interlude', enter: 'blur', exit: 'blur', hold: 'still', inDur: 0.4, outDur: 0.4,
-        params: { variant: 'quiet', showTitle, titleText: showTitle ? [title, artist].filter(Boolean).join('  /  ') : '' }, decor: Array.isArray(ov.decor) ? ov.decor.filter(id => J.DECOR[id]).map(id => decorParams(rng, id)) : pickDecor(rng, st, en, Object.assign({}, fx, { decor: Math.max(0.6, fx.decor) }), 'interlude', history),
-        scheme: schemeIdx, seed: J.h(lineSeed, 405), bg, bgP: J.BG[bg] && J.BG[bg].plan ? J.BG[bg].plan(rng, st) : {}, cam: 'push', camP: {} }));
-      if (en.fx == null || en.fx.chroma !== false) addEvent(s, 'chroma', 1 + fx.chroma, 0.25);
-      for (let t = s + 1.2; t < e - 0.8; t += J.clamp(dur / 4, 1.6, 3.2)) {          // a few effect accents so a long interlude keeps moving
-        const pick = pickFx(rng, st, en, fx, false, fxHistory, 'mid');
-        if (pick) { const D2 = J.FXE[pick]; addEvent(t, pick, (D2.amp || 1) * 0.6, (D2.dur || 3) / 24); fxHistory.push(pick); }
+      plan.cuts.push(makeCut({ text: '', lineText: '', line: li, start: s, end: e,
+        layout: 'interlude', enter: LS ? LS.enter : 'blur', exit: LS ? LS.exit : 'blur', hold: 'still', inDur: 0.4, outDur: 0.4,
+        params: LS ? LS.params : { variant: 'quiet', showTitle, titleText: showTitle ? [title, artist].filter(Boolean).join('  /  ') : '' },
+        decor: LS ? LS.decor : (Array.isArray(ov.decor) ? ov.decor.filter(id => J.DECOR[id]).map(id => decorParams(rng, id)) : pickDecor(rng, st, en, Object.assign({}, fx, { decor: Math.max(0.6, fx.decor) }), 'interlude', history)),
+        scheme: schemeIdx, seed: LS ? LS.seed : J.h(lineSeed, 405), bg, bgP: LS ? LS.bgP : (J.BG[bg] && J.BG[bg].plan ? J.BG[bg].plan(rng, st) : {}), cam: 'push', camP: {} }));
+      if (LS && Array.isArray(LS.events) && LS.events.length) {
+        for (const ev of LS.events) addEvent(s + ev.dt, ev.type, ev.amp, ev.dur);
+      } else {
+        if (en.fx == null || en.fx.chroma !== false) addEvent(s, 'chroma', 1 + fx.chroma, 0.25);
+        for (let t = s + 1.2; t < e - 0.8; t += J.clamp(dur / 4, 1.6, 3.2)) {          // a few effect accents so a long interlude keeps moving
+          const pick = pickFx(rng, st, en, fx, false, fxHistory, 'mid');
+          if (pick) { const D2 = J.FXE[pick]; addEvent(t, pick, (D2.amp || 1) * 0.6, (D2.dur || 3) / 24); fxHistory.push(pick); }
+        }
       }
       return;
     }
@@ -380,12 +387,12 @@ J.plan = (project, audio) => {
     let units = groups.map(g => ({ text: g, w: [...g].length + 1.6 }));
     if (recap) units.push({ text: ln.text, w: (units.reduce((a, u) => a + u.w, 0) / units.length) * 1.25, recap: true });
     // a locked line keeps its own cuts too (the cut count would otherwise follow the 細かさ slider or おまかせ)
-    if (ov.lock && Array.isArray(ov.lockedCuts) && ov.lockedCuts.length && ov.lockedCuts.every(c => c && typeof c.utext === 'string' && ln.text.includes(c.utext.trim())))
+    if (Array.isArray(ov.lockedCuts) && ov.lockedCuts.length && ov.lockedCuts.every(c => c && typeof c.utext === 'string' && ln.text.includes(c.utext.trim())))
       units = ov.lockedCuts.map(c => ({ text: c.utext, w: [...c.utext].length + 1.6, recap: !!c.recap }));
     const tot = units.reduce((a, u) => a + u.w, 0);
     // ロック: a locked line keeps exactly what it showed when it was locked (layouts, motion, decorations, colours,
     // accents) — rerolling other lines changes the shared "recently used" state, so the seed alone is not enough
-    const lockSpecs = ov.lock && Array.isArray(ov.lockedCuts) && ov.lockedCuts.length === units.length
+    const lockSpecs = Array.isArray(ov.lockedCuts) && ov.lockedCuts.length === units.length
       && ov.lockedCuts.every((c, k2) => c && c.utext === units[k2].text && J.LAYOUTS[c.layout]) ? ov.lockedCuts : null;
     let acc = s; const bounds = [s];
     units.forEach((u, k) => { acc += D * u.w / tot; bounds.push(k === units.length - 1 ? visEnd : acc); });
@@ -758,9 +765,9 @@ function splitCut(cut, halves, zones, st, dur, LS) {
 
 /* ロック: what a line shows, so it can be kept as it is (stored in project.overrides[line].lockedCuts) */
 J.lineSnapshot = (plan, li) => {
-  const cuts = plan.cuts.filter(c => c.line === li && c.utext != null);
+  const cuts = plan.cuts.filter(c => c.line === li && (c.utext != null || c.layout === 'interlude'));
   if (!cuts.length) return null;
-  const S = JSON.parse(JSON.stringify(cuts.map(c => ({ utext: c.utext, layout: c.layout, enter: c.enter, exit: c.exit, hold: c.hold, inDur: c.inDur, outDur: c.outDur,
+  const S = JSON.parse(JSON.stringify(cuts.map(c => ({ utext: c.utext != null ? c.utext : '', layout: c.layout, enter: c.enter, exit: c.exit, hold: c.hold, inDur: c.inDur, outDur: c.outDur,
     params: c.params, decor: c.decor, treat: c.treat, treatP: c.treatP, bg: c.bg, bgP: c.bgP, cam: c.cam, camP: c.camP, scheme: c.scheme, seed: c.seed,
     trans: c.trans, transP: c.transP, transDur: c.transDur, morph: c.morph || null, weightGrow: !!c.weightGrow, kime: !!c.kime, recap: !!c.recap, twinParams: c.companion ? c.companion.params : null, events: [] }))));
   // each accent belongs to the cut it plays in (the ones just before a cut start belong to that cut)

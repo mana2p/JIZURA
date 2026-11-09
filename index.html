@@ -3927,15 +3927,22 @@ J.plan = (project, audio) => {
     const rng = J.rng(lineSeed);
     if (ln.interlude) {                                    // [間奏]: background, decorations and screen effects only
       plan.lines.push({ index: li, src: ln.src, lrc: ln.lrc, text: '', interlude: true, secs: ln.secs, start: s, end: e, visEnd: e, note: null, impact: false, emph: [], chunks: [], seed: lineSeed });
-      const bg = ov.bg && J.BG[ov.bg] ? ov.bg : pickBg(rng, st, en, fx, bgHistory); bgHistory.push(bg);
+      const LS = Array.isArray(ov.lockedCuts) && ov.lockedCuts[0];
+      const bg = LS ? LS.bg : (ov.bg && J.BG[ov.bg] ? ov.bg : pickBg(rng, st, en, fx, bgHistory)); bgHistory.push(bg);
       const dur = e - s, showTitle = dur >= 6 && !!(title || artist);
-      plan.cuts.push(makeCut({ text: '', lineText: '', line: li, start: s, end: e, layout: 'interlude', enter: 'blur', exit: 'blur', hold: 'still', inDur: 0.4, outDur: 0.4,
-        params: { variant: 'quiet', showTitle, titleText: showTitle ? [title, artist].filter(Boolean).join('  /  ') : '' }, decor: Array.isArray(ov.decor) ? ov.decor.filter(id => J.DECOR[id]).map(id => decorParams(rng, id)) : pickDecor(rng, st, en, Object.assign({}, fx, { decor: Math.max(0.6, fx.decor) }), 'interlude', history),
-        scheme: schemeIdx, seed: J.h(lineSeed, 405), bg, bgP: J.BG[bg] && J.BG[bg].plan ? J.BG[bg].plan(rng, st) : {}, cam: 'push', camP: {} }));
-      if (en.fx == null || en.fx.chroma !== false) addEvent(s, 'chroma', 1 + fx.chroma, 0.25);
-      for (let t = s + 1.2; t < e - 0.8; t += J.clamp(dur / 4, 1.6, 3.2)) {          // a few effect accents so a long interlude keeps moving
-        const pick = pickFx(rng, st, en, fx, false, fxHistory, 'mid');
-        if (pick) { const D2 = J.FXE[pick]; addEvent(t, pick, (D2.amp || 1) * 0.6, (D2.dur || 3) / 24); fxHistory.push(pick); }
+      plan.cuts.push(makeCut({ text: '', lineText: '', line: li, start: s, end: e,
+        layout: 'interlude', enter: LS ? LS.enter : 'blur', exit: LS ? LS.exit : 'blur', hold: 'still', inDur: 0.4, outDur: 0.4,
+        params: LS ? LS.params : { variant: 'quiet', showTitle, titleText: showTitle ? [title, artist].filter(Boolean).join('  /  ') : '' },
+        decor: LS ? LS.decor : (Array.isArray(ov.decor) ? ov.decor.filter(id => J.DECOR[id]).map(id => decorParams(rng, id)) : pickDecor(rng, st, en, Object.assign({}, fx, { decor: Math.max(0.6, fx.decor) }), 'interlude', history)),
+        scheme: schemeIdx, seed: LS ? LS.seed : J.h(lineSeed, 405), bg, bgP: LS ? LS.bgP : (J.BG[bg] && J.BG[bg].plan ? J.BG[bg].plan(rng, st) : {}), cam: 'push', camP: {} }));
+      if (LS && Array.isArray(LS.events) && LS.events.length) {
+        for (const ev of LS.events) addEvent(s + ev.dt, ev.type, ev.amp, ev.dur);
+      } else {
+        if (en.fx == null || en.fx.chroma !== false) addEvent(s, 'chroma', 1 + fx.chroma, 0.25);
+        for (let t = s + 1.2; t < e - 0.8; t += J.clamp(dur / 4, 1.6, 3.2)) {          // a few effect accents so a long interlude keeps moving
+          const pick = pickFx(rng, st, en, fx, false, fxHistory, 'mid');
+          if (pick) { const D2 = J.FXE[pick]; addEvent(t, pick, (D2.amp || 1) * 0.6, (D2.dur || 3) / 24); fxHistory.push(pick); }
+        }
       }
       return;
     }
@@ -3966,12 +3973,12 @@ J.plan = (project, audio) => {
     let units = groups.map(g => ({ text: g, w: [...g].length + 1.6 }));
     if (recap) units.push({ text: ln.text, w: (units.reduce((a, u) => a + u.w, 0) / units.length) * 1.25, recap: true });
     // a locked line keeps its own cuts too (the cut count would otherwise follow the 細かさ slider or おまかせ)
-    if (ov.lock && Array.isArray(ov.lockedCuts) && ov.lockedCuts.length && ov.lockedCuts.every(c => c && typeof c.utext === 'string' && ln.text.includes(c.utext.trim())))
+    if (Array.isArray(ov.lockedCuts) && ov.lockedCuts.length && ov.lockedCuts.every(c => c && typeof c.utext === 'string' && ln.text.includes(c.utext.trim())))
       units = ov.lockedCuts.map(c => ({ text: c.utext, w: [...c.utext].length + 1.6, recap: !!c.recap }));
     const tot = units.reduce((a, u) => a + u.w, 0);
     // ロック: a locked line keeps exactly what it showed when it was locked (layouts, motion, decorations, colours,
     // accents) — rerolling other lines changes the shared "recently used" state, so the seed alone is not enough
-    const lockSpecs = ov.lock && Array.isArray(ov.lockedCuts) && ov.lockedCuts.length === units.length
+    const lockSpecs = Array.isArray(ov.lockedCuts) && ov.lockedCuts.length === units.length
       && ov.lockedCuts.every((c, k2) => c && c.utext === units[k2].text && J.LAYOUTS[c.layout]) ? ov.lockedCuts : null;
     let acc = s; const bounds = [s];
     units.forEach((u, k) => { acc += D * u.w / tot; bounds.push(k === units.length - 1 ? visEnd : acc); });
@@ -4344,9 +4351,9 @@ function splitCut(cut, halves, zones, st, dur, LS) {
 
 /* ロック: what a line shows, so it can be kept as it is (stored in project.overrides[line].lockedCuts) */
 J.lineSnapshot = (plan, li) => {
-  const cuts = plan.cuts.filter(c => c.line === li && c.utext != null);
+  const cuts = plan.cuts.filter(c => c.line === li && (c.utext != null || c.layout === 'interlude'));
   if (!cuts.length) return null;
-  const S = JSON.parse(JSON.stringify(cuts.map(c => ({ utext: c.utext, layout: c.layout, enter: c.enter, exit: c.exit, hold: c.hold, inDur: c.inDur, outDur: c.outDur,
+  const S = JSON.parse(JSON.stringify(cuts.map(c => ({ utext: c.utext != null ? c.utext : '', layout: c.layout, enter: c.enter, exit: c.exit, hold: c.hold, inDur: c.inDur, outDur: c.outDur,
     params: c.params, decor: c.decor, treat: c.treat, treatP: c.treatP, bg: c.bg, bgP: c.bgP, cam: c.cam, camP: c.camP, scheme: c.scheme, seed: c.seed,
     trans: c.trans, transP: c.transP, transDur: c.transDur, morph: c.morph || null, weightGrow: !!c.weightGrow, kime: !!c.kime, recap: !!c.recap, twinParams: c.companion ? c.companion.params : null, events: [] }))));
   // each accent belongs to the cut it plays in (the ones just before a cut start belong to that cut)
@@ -36828,7 +36835,8 @@ function openVariants(lineIndex) {
 
     const select = () => {
       remember();
-      setOv(lineIndex, v.patch);
+      freezeOtherLines(lineIndex);
+      setOv(lineIndex, Object.assign({}, v.patch, { lockedCuts: undefined, lockedSeed: undefined }));
       replan();
       commit();
       flushSave();
@@ -36908,12 +36916,12 @@ function renderLines() {
     q('.txt').addEventListener('click', () => seek(ln.start + 0.001));
     q('.txt').addEventListener('dblclick', () => editLine(li, ln));
     q('.edit').addEventListener('click', () => editLine(li, ln));
-    if (q('.lay')) q('.lay').addEventListener('change', e => { setOv(i, { layout: e.target.value || undefined }); replan(); });
-    if (q('.ncut')) q('.ncut').addEventListener('change', e => { remember(); setOv(i, { cuts: +e.target.value || undefined, single: undefined }); replan(); commit(); seek(ln.start + 0.001); });
+    if (q('.lay')) q('.lay').addEventListener('change', e => { freezeOtherLines(i); setOv(i, { layout: e.target.value || undefined, lockedCuts: undefined }); replan(); });
+    if (q('.ncut')) q('.ncut').addEventListener('change', e => { remember(); freezeOtherLines(i); setOv(i, { cuts: +e.target.value || undefined, single: undefined, lockedCuts: undefined }); replan(); commit(); seek(ln.start + 0.001); });
     q('.tapone').addEventListener('click', () => startTapOne(i));
     q('.tapfrom').addEventListener('click', () => startTap(i));
     q('.rng').addEventListener('click', e => setExportRange(i, e.shiftKey));
-    if (q('.dice')) q('.dice').addEventListener('click', () => { const cur = ov[i] || {}; setOv(i, { seed: (cur.seed | 0) + 1, lock: false, lockedSeed: undefined, lockedCuts: undefined }); replan(); seek(ln.start + 0.001); });
+    if (q('.dice')) q('.dice').addEventListener('click', () => { freezeOtherLines(i); const cur = ov[i] || {}; setOv(i, { seed: (cur.seed | 0) + 1, lock: false, lockedSeed: undefined, lockedCuts: undefined }); replan(); seek(ln.start + 0.001); });
     if (q('.lock')) q('.lock').addEventListener('click', () => {
       const cur = ov[i] || {};
       if (cur.lock) setOv(i, { lock: false, lockedSeed: undefined, lockedCuts: undefined });
@@ -37166,6 +37174,27 @@ function setOv(i, patch) {
   for (const k of Object.keys(cur)) if (cur[k] === undefined || cur[k] === false || cur[k] === '') delete cur[k];
   if (Object.keys(cur).length) S.project.overrides[i] = cur; else delete S.project.overrides[i];
 }
+function freezeOtherLines(targetIndex) {
+  if (!S.plan || !S.plan.lines) return;
+  S.plan.lines.forEach((otherLn, idx) => {
+    if (idx !== targetIndex) {
+      const curO = S.project.overrides[idx] || {};
+      if (!curO.lockedCuts) {
+        const snap = J.lineSnapshot(S.plan, idx);
+        if (snap) setOv(idx, { lockedCuts: snap, lockedSeed: otherLn.seed });
+      }
+    }
+  });
+}
+function clearAutoSnapshots() {
+  for (const [k, o] of Object.entries(S.project.overrides || {})) {
+    if (o && !o.lock) {
+      delete o.lockedCuts;
+      delete o.lockedSeed;
+      if (!Object.keys(o).length) delete S.project.overrides[k];
+    }
+  }
+}
 function setCutLayout(i, k, layout) { setCutTech(i, k, 'layout', layout); }
 function setCutTech(i, k, group, key) {
   if (i == null || i < 0 || k == null || k < 0) return;
@@ -37394,6 +37423,7 @@ function restartPreview() { seek(0); if (!S.playing && S.mode !== 'pro') play();
 const themeName = th => { const o = document.querySelector(`.themeSel option[value="${th}"]`); return o ? o.textContent : th; };
 function omakase() {
   if (S.exporting || S.tap) return;
+  clearAutoSnapshots();
   remember();
   const keepE = lockedEnabled(), keepP = lockedParams();
   const th = J.THEMES[S.project.themeId] ? S.project.themeId : null;
@@ -37425,6 +37455,7 @@ function rerollPart(part) {
     restoreEnabled(keepE); restoreParams(keepP);
     msg = `雰囲気：${J.MOODS[r.mood].name}`;
   } else if (part === 'cut') {
+    clearAutoSnapshots();
     P.seed = (Math.random() * 1e9) | 0;
     msg = '構成：レイアウトと動きを再抽選';
   }
@@ -37986,7 +38017,7 @@ function bind() {
     S.loop = LOOP_CYCLE[(i < 0 ? 0 : i + 1) % LOOP_CYCLE.length];
     syncLoopBtn(); S.need = true;
   });
-  $('btnShuffle').addEventListener('click', () => { remember(); S.project.seed = (Math.random() * 1e9) | 0; $('seed').value = S.project.seed; replan(); commit(); });
+  $('btnShuffle').addEventListener('click', () => { clearAutoSnapshots(); remember(); S.project.seed = (Math.random() * 1e9) | 0; $('seed').value = S.project.seed; replan(); commit(); });
   const sc = $('scrub');
   sc.addEventListener('input', () => { S.scrubbing = true; seek(sc.value / 10000 * S.plan.duration); });
   sc.addEventListener('change', () => { S.scrubbing = false; });
@@ -38045,8 +38076,8 @@ function bind() {
   $('fxHud').addEventListener('change', e => { S.project.fx.hud = e.target.value; replan(); });
   $('fxHideNo').addEventListener('change', e => { remember(); S.project.fx.hideNo = e.target.checked; replan(); commit(); });
   $('fxHideTime').addEventListener('change', e => { remember(); S.project.fx.hideTime = e.target.checked; replan(); commit(); });
-  $('seed').addEventListener('change', e => { S.project.seed = parseInt(e.target.value, 10) || 0; replan(); });
-  $('btnSeed').addEventListener('click', () => { S.project.seed = (Math.random() * 1e9) | 0; $('seed').value = S.project.seed; replan(); });
+  $('seed').addEventListener('change', e => { clearAutoSnapshots(); S.project.seed = parseInt(e.target.value, 10) || 0; replan(); });
+  $('btnSeed').addEventListener('click', () => { clearAutoSnapshots(); S.project.seed = (Math.random() * 1e9) | 0; $('seed').value = S.project.seed; replan(); });
   const colorToggle = (flag, keys) => e => {
     remember();
     const c = S.project.colors; c[flag] = e.target.checked;

@@ -742,7 +742,8 @@ function openVariants(lineIndex) {
 
     const select = () => {
       remember();
-      setOv(lineIndex, v.patch);
+      freezeOtherLines(lineIndex);
+      setOv(lineIndex, Object.assign({}, v.patch, { lockedCuts: undefined, lockedSeed: undefined }));
       replan();
       commit();
       flushSave();
@@ -822,12 +823,12 @@ function renderLines() {
     q('.txt').addEventListener('click', () => seek(ln.start + 0.001));
     q('.txt').addEventListener('dblclick', () => editLine(li, ln));
     q('.edit').addEventListener('click', () => editLine(li, ln));
-    if (q('.lay')) q('.lay').addEventListener('change', e => { setOv(i, { layout: e.target.value || undefined }); replan(); });
-    if (q('.ncut')) q('.ncut').addEventListener('change', e => { remember(); setOv(i, { cuts: +e.target.value || undefined, single: undefined }); replan(); commit(); seek(ln.start + 0.001); });
+    if (q('.lay')) q('.lay').addEventListener('change', e => { freezeOtherLines(i); setOv(i, { layout: e.target.value || undefined, lockedCuts: undefined }); replan(); });
+    if (q('.ncut')) q('.ncut').addEventListener('change', e => { remember(); freezeOtherLines(i); setOv(i, { cuts: +e.target.value || undefined, single: undefined, lockedCuts: undefined }); replan(); commit(); seek(ln.start + 0.001); });
     q('.tapone').addEventListener('click', () => startTapOne(i));
     q('.tapfrom').addEventListener('click', () => startTap(i));
     q('.rng').addEventListener('click', e => setExportRange(i, e.shiftKey));
-    if (q('.dice')) q('.dice').addEventListener('click', () => { const cur = ov[i] || {}; setOv(i, { seed: (cur.seed | 0) + 1, lock: false, lockedSeed: undefined, lockedCuts: undefined }); replan(); seek(ln.start + 0.001); });
+    if (q('.dice')) q('.dice').addEventListener('click', () => { freezeOtherLines(i); const cur = ov[i] || {}; setOv(i, { seed: (cur.seed | 0) + 1, lock: false, lockedSeed: undefined, lockedCuts: undefined }); replan(); seek(ln.start + 0.001); });
     if (q('.lock')) q('.lock').addEventListener('click', () => {
       const cur = ov[i] || {};
       if (cur.lock) setOv(i, { lock: false, lockedSeed: undefined, lockedCuts: undefined });
@@ -1080,6 +1081,27 @@ function setOv(i, patch) {
   for (const k of Object.keys(cur)) if (cur[k] === undefined || cur[k] === false || cur[k] === '') delete cur[k];
   if (Object.keys(cur).length) S.project.overrides[i] = cur; else delete S.project.overrides[i];
 }
+function freezeOtherLines(targetIndex) {
+  if (!S.plan || !S.plan.lines) return;
+  S.plan.lines.forEach((otherLn, idx) => {
+    if (idx !== targetIndex) {
+      const curO = S.project.overrides[idx] || {};
+      if (!curO.lockedCuts) {
+        const snap = J.lineSnapshot(S.plan, idx);
+        if (snap) setOv(idx, { lockedCuts: snap, lockedSeed: otherLn.seed });
+      }
+    }
+  });
+}
+function clearAutoSnapshots() {
+  for (const [k, o] of Object.entries(S.project.overrides || {})) {
+    if (o && !o.lock) {
+      delete o.lockedCuts;
+      delete o.lockedSeed;
+      if (!Object.keys(o).length) delete S.project.overrides[k];
+    }
+  }
+}
 function setCutLayout(i, k, layout) { setCutTech(i, k, 'layout', layout); }
 function setCutTech(i, k, group, key) {
   if (i == null || i < 0 || k == null || k < 0) return;
@@ -1308,6 +1330,7 @@ function restartPreview() { seek(0); if (!S.playing && S.mode !== 'pro') play();
 const themeName = th => { const o = document.querySelector(`.themeSel option[value="${th}"]`); return o ? o.textContent : th; };
 function omakase() {
   if (S.exporting || S.tap) return;
+  clearAutoSnapshots();
   remember();
   const keepE = lockedEnabled(), keepP = lockedParams();
   const th = J.THEMES[S.project.themeId] ? S.project.themeId : null;
@@ -1339,6 +1362,7 @@ function rerollPart(part) {
     restoreEnabled(keepE); restoreParams(keepP);
     msg = `雰囲気：${J.MOODS[r.mood].name}`;
   } else if (part === 'cut') {
+    clearAutoSnapshots();
     P.seed = (Math.random() * 1e9) | 0;
     msg = '構成：レイアウトと動きを再抽選';
   }
@@ -1900,7 +1924,7 @@ function bind() {
     S.loop = LOOP_CYCLE[(i < 0 ? 0 : i + 1) % LOOP_CYCLE.length];
     syncLoopBtn(); S.need = true;
   });
-  $('btnShuffle').addEventListener('click', () => { remember(); S.project.seed = (Math.random() * 1e9) | 0; $('seed').value = S.project.seed; replan(); commit(); });
+  $('btnShuffle').addEventListener('click', () => { clearAutoSnapshots(); remember(); S.project.seed = (Math.random() * 1e9) | 0; $('seed').value = S.project.seed; replan(); commit(); });
   const sc = $('scrub');
   sc.addEventListener('input', () => { S.scrubbing = true; seek(sc.value / 10000 * S.plan.duration); });
   sc.addEventListener('change', () => { S.scrubbing = false; });
@@ -1959,8 +1983,8 @@ function bind() {
   $('fxHud').addEventListener('change', e => { S.project.fx.hud = e.target.value; replan(); });
   $('fxHideNo').addEventListener('change', e => { remember(); S.project.fx.hideNo = e.target.checked; replan(); commit(); });
   $('fxHideTime').addEventListener('change', e => { remember(); S.project.fx.hideTime = e.target.checked; replan(); commit(); });
-  $('seed').addEventListener('change', e => { S.project.seed = parseInt(e.target.value, 10) || 0; replan(); });
-  $('btnSeed').addEventListener('click', () => { S.project.seed = (Math.random() * 1e9) | 0; $('seed').value = S.project.seed; replan(); });
+  $('seed').addEventListener('change', e => { clearAutoSnapshots(); S.project.seed = parseInt(e.target.value, 10) || 0; replan(); });
+  $('btnSeed').addEventListener('click', () => { clearAutoSnapshots(); S.project.seed = (Math.random() * 1e9) | 0; $('seed').value = S.project.seed; replan(); });
   const colorToggle = (flag, keys) => e => {
     remember();
     const c = S.project.colors; c[flag] = e.target.checked;
