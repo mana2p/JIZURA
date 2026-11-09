@@ -3814,7 +3814,13 @@ J.computeTiming = (project, parsed, audio) => {
   // fixed times: a hand-set time (typed, tapped, dragged) wins over the LRC tag; the rest is estimated
   const fixed = lines.map((l, i) => {
     const man = T.lineTimes && T.lineTimes[i] != null ? +T.lineTimes[i] : null;
-    if (man != null && isFinite(man)) return Math.max(0, man);
+    if (man != null && isFinite(man)) {
+      if (l.lrc != null && Math.abs(man - l.lrc) >= 1.5) {
+        if (T.lineTimes) delete T.lineTimes[i];
+        return l.lrc;
+      }
+      return Math.max(0, man);
+    }
     return l.lrc != null && isFinite(l.lrc) ? l.lrc : null;
   });
   // a fixed time may not go back past an earlier one (the saved value itself is left alone)
@@ -37383,19 +37389,110 @@ function deleteLine(i) {
 /* ---------------- 歌詞·タイミングの取り消し（Ctrl+Z） ---------------- */
 // separate from the ◀ ▶ history of looks: lyric edits, dragged / typed / tapped line times
 const ED = { undo: [], redo: [] };
-const edSnap = () => JSON.stringify({ lyrics: S.project.lyrics, lineTimes: S.project.timing.lineTimes || {} });
+const edSnap = () => JSON.stringify({ lyrics: S.project.lyrics, lineTimes: S.project.timing.lineTimes || {}, ov: S.project.overrides || {}, range: S.project.exportRange || null });
 function pushEdit() { const s = edSnap(); if (ED.undo[ED.undo.length - 1] !== s) ED.undo.push(s); if (ED.undo.length > 60) ED.undo.shift(); ED.redo = []; updateEditBtns(); }
 function edGo(d) {
   const from = d < 0 ? ED.undo : ED.redo, to = d < 0 ? ED.redo : ED.undo;
   if (!from.length) return;
   const o = JSON.parse(from.pop()), cur = JSON.parse(edSnap());
-  if ('ov' in o) { cur.ov = S.project.overrides; cur.range = S.project.exportRange || null; }   // clearLyrics() also cleared these
   to.push(JSON.stringify(cur));
-  S.project.lyrics = o.lyrics; S.project.timing.lineTimes = o.lineTimes; $('lyrics').value = o.lyrics;
-  if ('ov' in o) { S.project.overrides = o.ov || {}; S.project.exportRange = o.range || null; }
+  S.project.lyrics = o.lyrics;
+  S.project.timing.lineTimes = o.lineTimes || {};
+  S.project.overrides = o.ov || {};
+  S.project.exportRange = o.range || null;
+  $('lyrics').value = o.lyrics;
   replan(); flushSave(); updateEditBtns();
   toast(d < 0 ? 'Đã hoàn tác' : 'Đã làm lại');
 }
+
+/* ---------------- 歌詞編集時のdòng対応追従（Reconciliation） ---------------- */
+function lineMatchScore(a, b) {
+  if (!a || !b) return 0;
+  if (a.interlude && b.interlude) {
+    if (a.secs != null && b.secs != null && a.secs === b.secs) return 5;
+    return 4;
+  }
+  if (a.interlude !== b.interlude) return 0;
+  if (a.text === b.text) {
+    if (a.lrc != null && b.lrc != null && Math.abs(a.lrc - b.lrc) < 0.01) return 5;
+    return 4;
+  }
+  if (a.text && b.text) {
+    if (a.text.includes(b.text) || b.text.includes(a.text)) return 2;
+    if (a.lrc != null && b.lrc != null && Math.abs(a.lrc - b.lrc) < 0.01) return 3;
+  }
+  return 0;
+}
+
+function alignLines(oldLines, newLines) {
+  const m = oldLines.length, n = newLines.length;
+  if (m === 0 || n === 0) return {};
+  const dp = Array.from({ length: m + 1 }, () => new Int32Array(n + 1));
+  for (let i = 0; i < m; i++) {
+    for (let j = 0; j < n; j++) {
+      const score = lineMatchScore(oldLines[i], newLines[j]);
+      if (score > 0) dp[i + 1][j + 1] = dp[i][j] + score;
+      else dp[i + 1][j + 1] = Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+  const oldToNew = {};
+  let i = m, j = n;
+  while (i > 0 && j > 0) {
+    const score = lineMatchScore(oldLines[i - 1], newLines[j - 1]);
+    if (score > 0 && dp[i][j] === dp[i - 1][j - 1] + score) {
+      oldToNew[i - 1] = j - 1;
+      i--; j--;
+    } else if (dp[i - 1][j] >= dp[i][j - 1]) {
+      i--;
+    } else {
+      j--;
+    }
+  }
+  return oldToNew;
+}
+
+function reconcileLyrics(oldLyrics, newLyrics, project) {
+  if (!oldLyrics || !newLyrics || oldLyrics === newLyrics) return;
+  const oldLines = J.parseLyrics(oldLyrics).lines;
+  const newLines = J.parseLyrics(newLyrics).lines;
+  if (!oldLines.length || !newLines.length) return;
+  const map = alignLines(oldLines, newLines);
+
+  const newLineTimes = {};
+  for (const [k, v] of Object.entries(project.timing.lineTimes || {})) {
+    const oldIdx = +k, newIdx = map[oldIdx];
+    if (newIdx != null) {
+      const oldL = oldLines[oldIdx], newL = newLines[newIdx];
+      if (newL && newL.lrc != null && (oldL == null || oldL.lrc == null || Math.abs(newL.lrc - oldL.lrc) > 0.02)) {
+        continue;
+      }
+      newLineTimes[newIdx] = v;
+    }
+  }
+  project.timing.lineTimes = newLineTimes;
+
+  const newOverrides = {};
+  for (const [k, v] of Object.entries(project.overrides || {})) {
+    const oldIdx = +k, newIdx = map[oldIdx];
+    if (newIdx != null) newOverrides[newIdx] = v;
+  }
+  project.overrides = newOverrides;
+
+  if (project.exportRange) {
+    const from = map[project.exportRange.from];
+    const to = map[project.exportRange.to];
+    if (from != null && to != null) {
+      project.exportRange = { from: Math.min(from, to), to: Math.max(from, to) };
+    } else if (from != null) {
+      project.exportRange = { from, to: from };
+    } else if (to != null) {
+      project.exportRange = { from: to, to };
+    } else {
+      project.exportRange = null;
+    }
+  }
+}
+J.reconcileLyrics = reconcileLyrics;
 // LRC を読み込む: replaces the lyrics (and everything tied to line numbers, like 歌詞を消す); undoable
 function loadLrc(text) {
   if (S.tap || S.exporting) return;
@@ -38285,7 +38382,14 @@ function syncUI() {
 
 /* ---------------- wiring ---------------- */
 function bind() {
-  $('lyrics').addEventListener('input', e => { S.project.lyrics = e.target.value; replanSoon(260); });
+  $('lyrics').addEventListener('input', e => {
+    const val = e.target.value;
+    if (val === S.project.lyrics) return;
+    pushEdit();
+    reconcileLyrics(S.project.lyrics, val, S.project);
+    S.project.lyrics = val;
+    replanSoon(260);
+  });
   $('lyricLang').addEventListener('change', e => {
     remember();
     S.project.lang = e.target.value; replan(); renderFontRoles(); commit(); flushSave();

@@ -211,7 +211,13 @@ J.computeTiming = (project, parsed, audio) => {
   // fixed times: a hand-set time (typed, tapped, dragged) wins over the LRC tag; the rest is estimated
   const fixed = lines.map((l, i) => {
     const man = T.lineTimes && T.lineTimes[i] != null ? +T.lineTimes[i] : null;
-    if (man != null && isFinite(man)) return Math.max(0, man);
+    if (man != null && isFinite(man)) {
+      if (l.lrc != null && Math.abs(man - l.lrc) >= 1.5) {
+        if (T.lineTimes) delete T.lineTimes[i];
+        return l.lrc;
+      }
+      return Math.max(0, man);
+    }
     return l.lrc != null && isFinite(l.lrc) ? l.lrc : null;
   });
   // a fixed time may not go back past an earlier one (the saved value itself is left alone)
