@@ -256,6 +256,8 @@ UI = {
     'title="この行からタップで同期し直す" aria-label="${i + 1}行目からタップ"': 'title="Sinkronkan ulang dengan ketukan mulai dari baris ini" aria-label="Sinkronkan dengan ketukan mulai baris ${i + 1}"',
     'title="書き出す範囲にする（Shift+クリックで範囲を広げる）"': 'title="Jadikan rentang ekspor (Shift+klik untuk memperluas rentang)"',
     'aria-label="${i + 1}行目を書き出す範囲に"': 'aria-label="Ekspor baris ${i + 1}"',
+    'title="時間を前に（0.05秒・Shiftで0.2秒）" aria-label="${i + 1}行目を前に"': 'title="Majukan waktu (0,05dtk / Shift untuk 0,2dtk)" aria-label="Majukan baris ${i + 1}"',
+    'title="時間を後に（0.05秒・Shiftで0.2秒）" aria-label="${i + 1}行目を後に"': 'title="Mundurkan waktu (0,05dtk / Shift untuk 0,2dtk)" aria-label="Mundurkan baris ${i + 1}"',
     '`${ln.index + 1}行目の歌詞`': '`Lirik baris ${ln.index + 1}`',
     "'記法（/ 区切り・*強調*・行末の ! ・| 注釈・[間奏 8]）もそのまま使えます。Enter で確定、Esc で取り消し'": "'Sintaks lirik juga bisa dipakai di sini (/ potong, *penekanan*, ! di akhir, | catatan, [interlude 8]). Enter untuk menerapkan, Esc untuk membatalkan'",
     '`${ln.index + 1}行目の歌詞を直しました`': '`Baris ${ln.index + 1} diperbarui`',

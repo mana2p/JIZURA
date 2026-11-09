@@ -137,11 +137,26 @@ button.tap { font: 700 18px/1 var(--mono); letter-spacing: 0.2em; padding: 16px;
 
 /* line list */
 #lineList { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.ln { display: grid; grid-template-columns: 22px 66px minmax(0, 1fr); gap: 4px 6px; align-items: center; padding: 6px; border: 1px solid transparent; border-radius: var(--r); }
+.ln { display: grid; grid-template-columns: 22px 96px minmax(0, 1fr); gap: 4px 6px; align-items: center; padding: 6px; border: 1px solid transparent; border-radius: var(--r); }
 .ln:hover { background: var(--raised); }
 .ln.cur { border-color: var(--line2); background: var(--raised); }
 .ln .no { font: 500 11px var(--mono); color: var(--faint); text-align: right; }
-.ln .time { width: 100%; padding: 3px 5px; font-size: 12px; }
+.ln .time-wrap { display: inline-flex; align-items: center; position: relative; width: 100%; }
+.ln .time-btn {
+  background: var(--raised); border: 1px solid var(--line); color: var(--muted); cursor: pointer;
+  padding: 0 4px; height: 24px; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 8px; line-height: 1; flex: none; width: 18px; user-select: none;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.ln .time-btn:hover { color: var(--text); border-color: var(--amber); background: var(--line2); }
+.ln .time-btn:active { background: var(--amber); color: #120c00; }
+.ln .time-prev { border-radius: var(--r) 0 0 var(--r); border-right: 0; }
+.ln .time-next { border-radius: 0 var(--r) var(--r) 0; border-left: 0; }
+.ln .time-wrap .time {
+  border-radius: 0; text-align: center; padding: 3px 2px; min-width: 0; width: 100%; flex: 1; font-size: 11px;
+}
+.ln .time::-webkit-inner-spin-button, .ln .time::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.ln .time { -moz-appearance: textfield; }
 .ln .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
 .ln .meta { grid-column: 2 / 4; display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; flex-wrap: wrap; }
 .ln .tools { display: flex; gap: 4px; flex: 0 1 auto; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
@@ -441,7 +456,7 @@ button.small.primary { padding: 4px 12px; }
 #app.is-mobile .sec.fold > :not(.sec-h) { display: none !important; }
 /* lines: one compact row each, tap to open its tools */
 #app.is-mobile .ln { grid-template-columns: 22px minmax(0, 1fr); padding: 8px 6px; }
-#app.is-mobile .ln .time { display: none; }
+#app.is-mobile .ln .time-wrap, #app.is-mobile .ln .time { display: none; }
 #app.is-mobile .ln .meta { display: none; grid-column: 1 / -1; }
 #app.is-mobile .ln.open .meta { display: block; }
 #app.is-mobile .ln .txt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -37128,7 +37143,11 @@ function renderLines() {
     const cps = !ln.interlude && chars >= 3 ? chars / dur : 0;
     const speedBadge = cps >= 8.0 ? `<span class="badge warn-speed" title="読み切れない速さです（${cps.toFixed(1)}Teks/dtk · 表示時間${dur.toFixed(2)}dtkで${chars}Teks）">⚠️ ${cps.toFixed(1)}字/s</span>` : '';
     li.innerHTML = `<span class="no">${String(i + 1).padStart(2, '0')}</span>
-      <input class="time mono" type="number" step="0.01" min="0" value="${ln.start.toFixed(2)}" title="Mulai (dtk)${manual ? ' · manual' : ' · otomatis'}" aria-label="Waktu mulai baris ${i + 1} (dtk)" style="${manual ? 'border-color:var(--cyan)' : ''}">
+      <span class="time-wrap">
+        <button type="button" class="time-btn time-prev" title="Majukan waktu (0,05dtk / Shift untuk 0,2dtk)" aria-label="Majukan baris ${i + 1}">◀</button>
+        <input class="time mono" type="number" step="0.01" min="0" value="${ln.start.toFixed(2)}" title="Mulai (dtk)${manual ? ' · manual' : ' · otomatis'}" aria-label="Waktu mulai baris ${i + 1} (dtk)" style="${manual ? 'border-color:var(--cyan)' : ''}">
+        <button type="button" class="time-btn time-next" title="Mundurkan waktu (0,05dtk / Shift untuk 0,2dtk)" aria-label="Mundurkan baris ${i + 1}">▶</button>
+      </span>
       <span class="txt" title="${escapeHtml(label)}">${escapeHtml(label)}${speedBadge}</span>
       <div class="meta"><span class="cuts"></span>
       <span class="tools">
@@ -37147,8 +37166,7 @@ function renderLines() {
     if (q('.variants')) q('.variants').addEventListener('click', () => openVariants(i));
     if (q('.lay')) lazyLay(q('.lay'), o.layout || '');
     if (q('.ncut')) q('.ncut').value = o.cuts ? String(o.cuts) : '';
-    q('.time').addEventListener('change', e => {
-      const v = parseFloat(e.target.value);
+    const setLineTime = (v, autoSeek = false) => {
       pushEdit();
       if (!S.project.timing.lineTimes) S.project.timing.lineTimes = {};
       if (isFinite(v)) {
@@ -37161,9 +37179,22 @@ function renderLines() {
         let w = Math.max(0, v);
         if (hi >= lo && (w < lo || w > hi)) { w = J.clamp(w, lo, hi); toast(`Diatur ke ${w.toFixed(2)} dtk agar urutan baris tetap`); }
         lt[i] = +w.toFixed(3);
-      } else delete S.project.timing.lineTimes[i];
+        if (autoSeek) seek(w + 0.001);
+      } else {
+        delete S.project.timing.lineTimes[i];
+      }
       replan();
+    };
+    q('.time').addEventListener('change', e => {
+      setLineTime(parseFloat(e.target.value));
     });
+    const stepTime = (delta, ev) => {
+      const step = ev && ev.shiftKey ? 0.2 : (ev && ev.altKey ? 0.01 : 0.05);
+      const cur = isFinite(ln.start) ? ln.start : 0;
+      setLineTime(cur + delta * step, true);
+    };
+    if (q('.time-prev')) q('.time-prev').addEventListener('click', e => stepTime(-1, e));
+    if (q('.time-next')) q('.time-next').addEventListener('click', e => stepTime(1, e));
     q('.txt').addEventListener('click', () => seek(ln.start + 0.001));
     q('.txt').addEventListener('dblclick', () => editLine(li, ln));
     q('.edit').addEventListener('click', () => editLine(li, ln));

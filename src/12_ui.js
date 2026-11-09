@@ -784,7 +784,11 @@ function renderLines() {
     const cps = !ln.interlude && chars >= 3 ? chars / dur : 0;
     const speedBadge = cps >= 8.0 ? `<span class="badge warn-speed" title="読み切れない速さです（${cps.toFixed(1)}文字/秒・表示時間${dur.toFixed(2)}秒で${chars}文字）">⚠️ ${cps.toFixed(1)}字/s</span>` : '';
     li.innerHTML = `<span class="no">${String(i + 1).padStart(2, '0')}</span>
-      <input class="time mono" type="number" step="0.01" min="0" value="${ln.start.toFixed(2)}" title="開始（秒）${manual ? '・手動' : '・自動'}" aria-label="${i + 1}行目の開始秒" style="${manual ? 'border-color:var(--cyan)' : ''}">
+      <span class="time-wrap">
+        <button type="button" class="time-btn time-prev" title="時間を前に（0.05秒・Shiftで0.2秒）" aria-label="${i + 1}行目を前に">◀</button>
+        <input class="time mono" type="number" step="0.01" min="0" value="${ln.start.toFixed(2)}" title="開始（秒）${manual ? '・手動' : '・自動'}" aria-label="${i + 1}行目の開始秒" style="${manual ? 'border-color:var(--cyan)' : ''}">
+        <button type="button" class="time-btn time-next" title="時間を後に（0.05秒・Shiftで0.2秒）" aria-label="${i + 1}行目を後に">▶</button>
+      </span>
       <span class="txt" title="${escapeHtml(label)}">${escapeHtml(label)}${speedBadge}</span>
       <div class="meta"><span class="cuts"></span>
       <span class="tools">
@@ -803,8 +807,7 @@ function renderLines() {
     if (q('.variants')) q('.variants').addEventListener('click', () => openVariants(i));
     if (q('.lay')) lazyLay(q('.lay'), o.layout || '');
     if (q('.ncut')) q('.ncut').value = o.cuts ? String(o.cuts) : '';
-    q('.time').addEventListener('change', e => {
-      const v = parseFloat(e.target.value);
+    const setLineTime = (v, autoSeek = false) => {
       pushEdit();
       if (!S.project.timing.lineTimes) S.project.timing.lineTimes = {};
       if (isFinite(v)) {
@@ -817,9 +820,22 @@ function renderLines() {
         let w = Math.max(0, v);
         if (hi >= lo && (w < lo || w > hi)) { w = J.clamp(w, lo, hi); toast(`前後の行と順番が入れ替わらないよう ${w.toFixed(2)} 秒にしました`); }
         lt[i] = +w.toFixed(3);
-      } else delete S.project.timing.lineTimes[i];
+        if (autoSeek) seek(w + 0.001);
+      } else {
+        delete S.project.timing.lineTimes[i];
+      }
       replan();
+    };
+    q('.time').addEventListener('change', e => {
+      setLineTime(parseFloat(e.target.value));
     });
+    const stepTime = (delta, ev) => {
+      const step = ev && ev.shiftKey ? 0.2 : (ev && ev.altKey ? 0.01 : 0.05);
+      const cur = isFinite(ln.start) ? ln.start : 0;
+      setLineTime(cur + delta * step, true);
+    };
+    if (q('.time-prev')) q('.time-prev').addEventListener('click', e => stepTime(-1, e));
+    if (q('.time-next')) q('.time-next').addEventListener('click', e => stepTime(1, e));
     q('.txt').addEventListener('click', () => seek(ln.start + 0.001));
     q('.txt').addEventListener('dblclick', () => editLine(li, ln));
     q('.edit').addEventListener('click', () => editLine(li, ln));

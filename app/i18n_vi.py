@@ -333,6 +333,8 @@ UI = {
     'title="この行からタップで同期し直す" aria-label="${i + 1}行目からタップ"': 'title="Đặt lại điểm đánh dấu chuyển cảnh" aria-label="Đồng bộ hóa với các nhịp bắt đầu từ hàng ${i + 1}"',
     'title="書き出す範囲にする（Shift+クリックで範囲を広げる）"': 'title="Tạo phạm vi xuất (Shift+click để mở rộng phạm vi)"',
     'aria-label="${i + 1}行目を書き出す範囲に"': 'aria-label="Xuất hàng ${i + 1}"',
+    'title="時間を前に（0.05秒・Shiftで0.2秒）" aria-label="${i + 1}行目を前に"': 'title="Chỉnh sớm hơn (0.05s / Shift: 0.2s)" aria-label="Chỉnh dòng ${i + 1} sớm hơn"',
+    'title="時間を後に（0.05秒・Shiftで0.2秒）" aria-label="${i + 1}行目を後に"': 'title="Chỉnh muộn hơn (0.05s / Shift: 0.2s)" aria-label="Chỉnh dòng ${i + 1} muộn hơn"',
     '`${ln.index + 1}行目の歌詞`': '`Lời dòng ${ln.index + 1}`',
     "'記法（/ 区切り・*強調*・行末の ! ・| 注釈・[間奏 8]）もそのまま使えます。Enter で確定、Esc で取り消し'": "'Cú pháp lời cũng dùng ở đây (/ cắt, *nhấn mạnh*, ! cuối dòng, | chú thích, [interlude 8]). Enter để áp dụng, Esc để hủy'",
     '`${ln.index + 1}行目の歌詞を直しました`': '`Dòng ${ln.index + 1} đã cập nhật`',
