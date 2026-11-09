@@ -611,8 +611,8 @@ button.small.primary { padding: 4px 12px; }
             <label class="check"><input class="typo-toggle" type="checkbox" checked><span>Dùng các thành phần kiểu chữ<small>Khoảng 50 thành phần chỉ dùng đường kẻ, con số và cách sắp chữ, đúng chất video lời bài hát</small></span></label>
             <label class="check"><input class="kinetic-toggle" type="checkbox" checked><span>Dùng các thành phần chuyển động chữ<small>Khoảng 50 thành phần chú trọng chuyển động: từng từ di chuyển, nảy lên và xếp chồng</small></span></label>
             <label class="check"><input class="horror-toggle" type="checkbox"><span>Dùng cả hiệu ứng kinh dị<small>Khoảng 50 thành phần mang không khí rùng rợn và 3 bộ màu. Khi bật, chế độ Ngẫu nhiên có thêm bầu không khí «Kinh dị»</small></span></label>
-            <label class="check"><input class="unify-toggle" type="checkbox"><span>Sử dụng hiệu ứng đồng nhất</span></label>
-            <label class="check"><input class="typeset-toggle" type="checkbox"><span>Tạo kiểu cho văn bản</span></label>
+            <label class="check"><input class="unify-toggle" type="checkbox" checked><span>Sử dụng hiệu ứng đồng nhất<small>Đồng nhất hiệu ứng theo từng phần, lời lặp lại có cách thể hiện giống nhau. Sử dụng điểm nhấn, biến đổi và thay đổi độ dày</small></span></label>
+            <label class="check"><input class="typeset-toggle" type="checkbox" checked><span>Tạo kiểu cho văn bản<small>Thu hẹp khoảng cách kana, giảm kích thước trợ từ, căn chỉnh chữ Latin, sớm hơn 0,2s, hiệu ứng tinh gọn cho video chữ</small></span></label>
           </div>
         </div>
         <div class="easy-sec">
@@ -679,8 +679,8 @@ button.small.primary { padding: 4px 12px; }
 
       <div class="tabpane" data-pane="fx" hidden>
         <div class="unify-box">
-          <label class="check"><input class="unify-toggle" type="checkbox"><span>Sử dụng hiệu ứng đồng nhất</span></label>
-          <label class="check"><input class="typeset-toggle" type="checkbox"><span>Tạo kiểu cho văn bản</span></label>
+          <label class="check"><input class="unify-toggle" type="checkbox" checked><span>Sử dụng hiệu ứng đồng nhất<small>Đồng nhất hiệu ứng, lặp lại giống nhau, điểm nhấn, biến đổi, độ dày</small></span></label>
+          <label class="check"><input class="typeset-toggle" type="checkbox" checked><span>Tạo kiểu cho văn bản<small>Khoảng cách chữ, trợ từ/Latin, sớm hơn 0,2s, hiệu ứng tinh gọn</small></span></label>
         </div>
         <div id="fxSliders"></div>
         <div class="row" style="margin-top:6px">
@@ -3458,8 +3458,8 @@ J.defaultProject = () => ({
   kinetic: true,                  // キネティック parts
   lang: 'auto',                   // 歌詞の言語: 'auto' | 'ja' | 'zh-Hant' | 'zh-Hans' | 'ko' — picks the faces each font key is drawn with
   keyBg: 'off',                   // 合成用の背景: 'off' | 'green' (グリーンバック) | 'black' (ブラックバック)
-  unify: false,                   // 統一感: part palettes, repeats shown the same way, キメ, モーフ, 太さ
-  typeset: false,                 // 文字整列: kana tracking, small particles / big first character, Latin sizing, 0.2 s lead, restraint
+  unify: true,                    // 統一感: part palettes, repeats shown the same way, キメ, モーフ, 太さ
+  typeset: true,                  // 文字整列: kana tracking, small particles / big first character, Latin sizing, 0.2 s lead, restraint
   centerDir: 'tb',                // 中央を空ける on tall frames: 'tb' = top / bottom, 'lr' = left / right
   centerFree: false,              // 中央を空ける: lay the cuts out in side bands (left / right or top / bottom) around a character
   seed: 20260922,

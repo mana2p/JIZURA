@@ -611,8 +611,8 @@ button.small.primary { padding: 4px 12px; }
             <label class="check"><input class="typo-toggle" type="checkbox" checked><span>Pakai bagian tipografi<small>Sekitar 50 bagian yang hanya memakai garis, angka, dan tata huruf, khas video lirik</small></span></label>
             <label class="check"><input class="kinetic-toggle" type="checkbox" checked><span>Pakai bagian kinetik<small>Sekitar 50 bagian yang mengutamakan gerak: kata bergerak, memantul, dan bertumpuk satu per satu</small></span></label>
             <label class="check"><input class="horror-toggle" type="checkbox"><span>Sertakan efek horor<small>Sekitar 50 bagian bernuansa seram dan 3 gaya. Jika aktif, Acak menambahkan suasana Horor</small></span></label>
-            <label class="check"><input class="unify-toggle" type="checkbox"><span>Tampilan seragam</span></label>
-            <label class="check"><input class="typeset-toggle" type="checkbox"><span>Penataan teks</span></label>
+            <label class="check"><input class="unify-toggle" type="checkbox" checked><span>Tampilan seragam<small>Seragamkan efek per bagian, lirik berulang tampil sama. Memakai klimaks, morf, dan perubahan ketebalan</small></span></label>
+            <label class="check"><input class="typeset-toggle" type="checkbox" checked><span>Penataan teks<small>Kerapatan kana, partikel kecil, penyesuaian Latin, 0,2 detik lebih awal, efek hemat untuk tipografi khas video lirik</small></span></label>
           </div>
         </div>
         <div class="easy-sec">
@@ -679,8 +679,8 @@ button.small.primary { padding: 4px 12px; }
 
       <div class="tabpane" data-pane="fx" hidden>
         <div class="unify-box">
-          <label class="check"><input class="unify-toggle" type="checkbox"><span>Tampilan seragam</span></label>
-          <label class="check"><input class="typeset-toggle" type="checkbox"><span>Penataan teks</span></label>
+          <label class="check"><input class="unify-toggle" type="checkbox" checked><span>Tampilan seragam<small>Efek seragam, pengulangan sama, klimaks, morf, ketebalan</small></span></label>
+          <label class="check"><input class="typeset-toggle" type="checkbox" checked><span>Penataan teks<small>Jarak teks, partikel/Latin, 0,2 detik awal, efek hemat</small></span></label>
         </div>
         <div id="fxSliders"></div>
         <div class="row" style="margin-top:6px">
@@ -3458,8 +3458,8 @@ J.defaultProject = () => ({
   kinetic: true,                  // キネティック parts
   lang: 'auto',                   // 歌詞の言語: 'auto' | 'ja' | 'zh-Hant' | 'zh-Hans' | 'ko' — picks the faces each font key is drawn with
   keyBg: 'off',                   // 合成用の背景: 'off' | 'green' (グリーンバック) | 'black' (ブラックバック)
-  unify: false,                   // 統一感: part palettes, repeats shown the same way, キメ, モーフ, 太さ
-  typeset: false,                 // 文字整列: kana tracking, small particles / big first character, Latin sizing, 0.2 s lead, restraint
+  unify: true,                    // 統一感: part palettes, repeats shown the same way, キメ, モーフ, 太さ
+  typeset: true,                  // 文字整列: kana tracking, small particles / big first character, Latin sizing, 0.2 s lead, restraint
   centerDir: 'tb',                // 中央を空ける on tall frames: 'tb' = top / bottom, 'lr' = left / right
   centerFree: false,              // 中央を空ける: lay the cuts out in side bands (left / right or top / bottom) around a character
   seed: 20260922,

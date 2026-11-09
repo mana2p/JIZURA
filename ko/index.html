@@ -611,8 +611,8 @@ button.small.primary { padding: 4px 12px; }
             <label class="check"><input class="typo-toggle" type="checkbox" checked><span>타이포그래피 부품 사용<small>선, 숫자, 글자 조판만으로 보여 주는 가사 영상다운 부품(약 50개)</small></span></label>
             <label class="check"><input class="kinetic-toggle" type="checkbox" checked><span>키네틱 부품 사용<small>단어마다 움직이고 튀고 쌓이는, 움직임 중심의 부품(약 50개)</small></span></label>
             <label class="check"><input class="horror-toggle" type="checkbox"><span>호러 연출도 사용<small>으스스한 분위기의 부품(약 50개)과 배색 세트 3개. 켜면 자동 생성 분위기에 「호러」가 추가됩니다</small></span></label>
-            <label class="check"><input class="unify-toggle" type="checkbox"><span>통일감</span></label>
-            <label class="check"><input class="typeset-toggle" type="checkbox"><span>문자 정렬</span></label>
+            <label class="check"><input class="unify-toggle" type="checkbox" checked><span>통일감<small>파트별로 연출을 맞추고, 반복되는 가사는 같은 방식으로 표현. 킬링 파트·모프·굵기 변화도 사용</small></span></label>
+            <label class="check"><input class="typeset-toggle" type="checkbox" checked><span>문자 정렬<small>자간 축소·조사 축소·영문 조정·음성보다 0.2초 먼저 표시·효과 절제로 완성도 높은 타이포그래피</small></span></label>
           </div>
         </div>
         <div class="easy-sec">
@@ -679,8 +679,8 @@ button.small.primary { padding: 4px 12px; }
 
       <div class="tabpane" data-pane="fx" hidden>
         <div class="unify-box">
-          <label class="check"><input class="unify-toggle" type="checkbox"><span>통일감</span></label>
-          <label class="check"><input class="typeset-toggle" type="checkbox"><span>문자 정렬</span></label>
+          <label class="check"><input class="unify-toggle" type="checkbox" checked><span>통일감<small>파트 연출 통일, 반복 일치, 킬링 파트, 모프, 굵기</small></span></label>
+          <label class="check"><input class="typeset-toggle" type="checkbox" checked><span>문자 정렬<small>자간, 조사/영문 조정, 0.2초 먼저, 효과 절제</small></span></label>
         </div>
         <div id="fxSliders"></div>
         <div class="row" style="margin-top:6px">
@@ -3458,8 +3458,8 @@ J.defaultProject = () => ({
   kinetic: true,                  // キネティック parts
   lang: 'auto',                   // 歌詞の言語: 'auto' | 'ja' | 'zh-Hant' | 'zh-Hans' | 'ko' — picks the faces each font key is drawn with
   keyBg: 'off',                   // 合成用の背景: 'off' | 'green' (グリーンバック) | 'black' (ブラックバック)
-  unify: false,                   // 統一感: part palettes, repeats shown the same way, キメ, モーフ, 太さ
-  typeset: false,                 // 文字整列: kana tracking, small particles / big first character, Latin sizing, 0.2 s lead, restraint
+  unify: true,                    // 統一感: part palettes, repeats shown the same way, キメ, モーフ, 太さ
+  typeset: true,                  // 文字整列: kana tracking, small particles / big first character, Latin sizing, 0.2 s lead, restraint
   centerDir: 'tb',                // 中央を空ける on tall frames: 'tb' = top / bottom, 'lr' = left / right
   centerFree: false,              // 中央を空ける: lay the cuts out in side bands (left / right or top / bottom) around a character
   seed: 20260922,

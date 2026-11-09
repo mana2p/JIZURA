@@ -23,8 +23,8 @@ J.defaultProject = () => ({
   kinetic: true,                  // キネティック parts
   lang: 'auto',                   // 歌詞の言語: 'auto' | 'ja' | 'zh-Hant' | 'zh-Hans' | 'ko' — picks the faces each font key is drawn with
   keyBg: 'off',                   // 合成用の背景: 'off' | 'green' (グリーンバック) | 'black' (ブラックバック)
-  unify: false,                   // 統一感: part palettes, repeats shown the same way, キメ, モーフ, 太さ
-  typeset: false,                 // 文字整列: kana tracking, small particles / big first character, Latin sizing, 0.2 s lead, restraint
+  unify: true,                    // 統一感: part palettes, repeats shown the same way, キメ, モーフ, 太さ
+  typeset: true,                  // 文字整列: kana tracking, small particles / big first character, Latin sizing, 0.2 s lead, restraint
   centerDir: 'tb',                // 中央を空ける on tall frames: 'tb' = top / bottom, 'lr' = left / right
   centerFree: false,              // 中央を空ける: lay the cuts out in side bands (left / right or top / bottom) around a character
   seed: 20260922,

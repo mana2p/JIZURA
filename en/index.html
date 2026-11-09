@@ -611,8 +611,8 @@ button.small.primary { padding: 4px 12px; }
             <label class="check"><input class="typo-toggle" type="checkbox" checked><span>Use typographic parts<small>About 50 parts that work with lines, numbers and type alone, in the spirit of lyric videos</small></span></label>
             <label class="check"><input class="kinetic-toggle" type="checkbox" checked><span>Use kinetic parts<small>About 50 motion-first parts: words move, bounce and stack one by one</small></span></label>
             <label class="check"><input class="horror-toggle" type="checkbox"><span>Include horror effects<small>About 50 eerie parts and 3 styles. When on, Randomize adds a Horror mood</small></span></label>
-            <label class="check"><input class="unify-toggle" type="checkbox"><span>Unified look</span></label>
-            <label class="check"><input class="typeset-toggle" type="checkbox"><span>Typesetting</span></label>
+            <label class="check"><input class="unify-toggle" type="checkbox" checked><span>Unified look<small>Parts match; repeated lines look the same. Uses hits, morphs and weight growth</small></span></label>
+            <label class="check"><input class="typeset-toggle" type="checkbox" checked><span>Typesetting<small>Tight kana, small particles, Latin spacing, 0.2s lead, restraint</small></span></label>
           </div>
         </div>
         <div class="easy-sec">
@@ -679,8 +679,8 @@ button.small.primary { padding: 4px 12px; }
 
       <div class="tabpane" data-pane="fx" hidden>
         <div class="unify-box">
-          <label class="check"><input class="unify-toggle" type="checkbox"><span>Unified look</span></label>
-          <label class="check"><input class="typeset-toggle" type="checkbox"><span>Typesetting</span></label>
+          <label class="check"><input class="unify-toggle" type="checkbox" checked><span>Unified look<small>Part palettes, repeat matching, hits, morphs, weight</small></span></label>
+          <label class="check"><input class="typeset-toggle" type="checkbox" checked><span>Typesetting<small>Tight kana, particles/Latin spacing, 0.2s lead, restraint</small></span></label>
         </div>
         <div id="fxSliders"></div>
         <div class="row" style="margin-top:6px">
@@ -3458,8 +3458,8 @@ J.defaultProject = () => ({
   kinetic: true,                  // キネティック parts
   lang: 'auto',                   // 歌詞の言語: 'auto' | 'ja' | 'zh-Hant' | 'zh-Hans' | 'ko' — picks the faces each font key is drawn with
   keyBg: 'off',                   // 合成用の背景: 'off' | 'green' (グリーンバック) | 'black' (ブラックバック)
-  unify: false,                   // 統一感: part palettes, repeats shown the same way, キメ, モーフ, 太さ
-  typeset: false,                 // 文字整列: kana tracking, small particles / big first character, Latin sizing, 0.2 s lead, restraint
+  unify: true,                    // 統一感: part palettes, repeats shown the same way, キメ, モーフ, 太さ
+  typeset: true,                  // 文字整列: kana tracking, small particles / big first character, Latin sizing, 0.2 s lead, restraint
   centerDir: 'tb',                // 中央を空ける on tall frames: 'tb' = top / bottom, 'lr' = left / right
   centerFree: false,              // 中央を空ける: lay the cuts out in side bands (left / right or top / bottom) around a character
   seed: 20260922,

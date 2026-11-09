@@ -611,8 +611,8 @@ button.small.primary { padding: 4px 12px; }
             <label class="check"><input class="typo-toggle" type="checkbox" checked><span>使用文字排版部件<small>只用線條、數字與排版呈現的文字 PV 部件（約 50 個）</small></span></label>
             <label class="check"><input class="kinetic-toggle" type="checkbox" checked><span>使用動態文字部件<small>逐詞移動、彈跳、堆疊，以動態為主的部件（約 50 個）</small></span></label>
             <label class="check"><input class="horror-toggle" type="checkbox"><span>也使用恐怖特效<small>約 50 個詭異氛圍的部件與 3 組配色。開啟後，隨機生成的氛圍會加入「恐怖」</small></span></label>
-            <label class="check"><input class="unify-toggle" type="checkbox"><span>統一感</span></label>
-            <label class="check"><input class="typeset-toggle" type="checkbox"><span>文字排列</span></label>
+            <label class="check"><input class="unify-toggle" type="checkbox" checked><span>統一感<small>按段落統一效果，重複歌詞採用相同呈現方式，並使用亮點、變形與粗細變化</small></span></label>
+            <label class="check"><input class="typeset-toggle" type="checkbox" checked><span>文字排列<small>緊湊假名、縮小助詞、調整英文、提前0.2秒顯示、節制特效，打造文字PV風格排版</small></span></label>
           </div>
         </div>
         <div class="easy-sec">
@@ -679,8 +679,8 @@ button.small.primary { padding: 4px 12px; }
 
       <div class="tabpane" data-pane="fx" hidden>
         <div class="unify-box">
-          <label class="check"><input class="unify-toggle" type="checkbox"><span>統一感</span></label>
-          <label class="check"><input class="typeset-toggle" type="checkbox"><span>文字排列</span></label>
+          <label class="check"><input class="unify-toggle" type="checkbox" checked><span>統一感<small>段落效果統一、重複一致、亮點、變形、粗細</small></span></label>
+          <label class="check"><input class="typeset-toggle" type="checkbox" checked><span>文字排列<small>字距、助詞/英文調整、提前0.2秒、特效節制</small></span></label>
         </div>
         <div id="fxSliders"></div>
         <div class="row" style="margin-top:6px">
@@ -3458,8 +3458,8 @@ J.defaultProject = () => ({
   kinetic: true,                  // キネティック parts
   lang: 'auto',                   // 歌詞の言語: 'auto' | 'ja' | 'zh-Hant' | 'zh-Hans' | 'ko' — picks the faces each font key is drawn with
   keyBg: 'off',                   // 合成用の背景: 'off' | 'green' (グリーンバック) | 'black' (ブラックバック)
-  unify: false,                   // 統一感: part palettes, repeats shown the same way, キメ, モーフ, 太さ
-  typeset: false,                 // 文字整列: kana tracking, small particles / big first character, Latin sizing, 0.2 s lead, restraint
+  unify: true,                    // 統一感: part palettes, repeats shown the same way, キメ, モーフ, 太さ
+  typeset: true,                  // 文字整列: kana tracking, small particles / big first character, Latin sizing, 0.2 s lead, restraint
   centerDir: 'tb',                // 中央を空ける on tall frames: 'tb' = top / bottom, 'lr' = left / right
   centerFree: false,              // 中央を空ける: lay the cuts out in side bands (left / right or top / bottom) around a character
   seed: 20260922,
