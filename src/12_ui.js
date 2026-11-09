@@ -128,6 +128,7 @@ function mergeProject(p) {
   migrateOrder(o, p);
   o.themeId = p && typeof p.themeId === 'string' && J.THEMES && J.THEMES[p.themeId] ? p.themeId : null;
   o.fonts = {};
+  o.media = (p && p.media) || { bg: null, fg: null, overlays: [] };
   for (const [role, k] of Object.entries((p && p.fonts) || {})) if (typeof k === 'string' && J.FONTS[k] && /^[\w-]+$/.test(role)) o.fonts[role] = k;
   return o;
 }
@@ -1612,6 +1613,37 @@ function updateTap() {
   $('tapPanel').classList.toggle('compact', S.tap.done.length >= 3);  // 最初の数回が終わったら説明を畳んで、固定しても邪魔にならないように
 }
 
+const blobToDataURL = blob => new Promise((res, rej) => {
+  const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(blob);
+});
+
+function renderMedia() {
+  const m = S.project.media || (S.project.media = { bg: null, fg: null, overlays: [] });
+  if ($('mediaBgFit')) $('mediaBgFit').value = (m.bg && m.bg.fit) || 'cover';
+  if ($('mediaBgOpacity')) $('mediaBgOpacity').value = String(m.bg && m.bg.opacity != null ? m.bg.opacity : 1);
+  if ($('mediaFgChroma')) $('mediaFgChroma').checked = !!(m.fg && m.fg.chromaKey);
+  if ($('mediaFgOpacity')) $('mediaFgOpacity').value = String(m.fg && m.fg.opacity != null ? m.fg.opacity : 1);
+  const ol = $('mediaOverlayList');
+  if (ol) {
+    ol.innerHTML = '';
+    (m.overlays || []).forEach((ov, idx) => {
+      const row = document.createElement('div');
+      row.className = 'overlay-item';
+      row.innerHTML = `<img src="${ov.url}" alt="">
+        <span class="ov-name">${escapeHtml(ov.name || '素材 ' + (idx + 1))}</span>
+        <label><input type="checkbox" class="ov-ck" ${ov.chromaKey ? 'checked' : ''}> 緑抜き</label>
+        <button class="ghost small ov-del">削除</button>`;
+      row.querySelector('.ov-ck').addEventListener('change', e => {
+        ov.chromaKey = e.target.checked; replan(); commit(); flushSave();
+      });
+      row.querySelector('.ov-del').addEventListener('click', () => {
+        m.overlays.splice(idx, 1); renderMedia(); replan(); commit(); flushSave();
+      });
+      ol.appendChild(row);
+    });
+  }
+}
+
 /* ---------------- sync all inputs from project ---------------- */
 function syncUI() {
   $('songTitle').value = S.project.title || ''; $('songArtist').value = S.project.artist || '';
@@ -1628,7 +1660,7 @@ function syncUI() {
   document.querySelectorAll('.typeset-toggle').forEach(el => { el.checked = S.project.typeset === true; });
   $('lyricLang').value = J.LANG_LABEL[S.project.lang] ? S.project.lang : 'auto'; langNote();
   document.querySelectorAll('.themeSel').forEach(el => { el.value = J.THEMES[S.project.themeId] ? S.project.themeId : ''; });
-  renderFontRoles(); renderColors(); renderFx(); renderTech(); syncOut(); drawStyleGrid();
+  renderFontRoles(); renderColors(); renderFx(); renderTech(); renderMedia(); syncOut(); drawStyleGrid();
 }
 
 /* ---------------- wiring ---------------- */
@@ -1824,6 +1856,69 @@ function bind() {
   document.querySelectorAll('.terms-open').forEach(b => b.addEventListener('click', openTerms));
   dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close ? dlg.close() : dlg.removeAttribute('open'); });   // click on the backdrop
   $('btnSave').addEventListener('click', () => J.saveFile(baseName() + '.jizura.json', JSON.stringify(Object.assign({}, S.project, { appVersion: '@VERSION@' }), null, 1)));
+  $('btnSaveBundle')?.addEventListener('click', async () => {
+    const p = Object.assign({}, S.project, { appVersion: '@VERSION@' });
+    if (S.audio && S.audio.buffer) {
+      const blob = J.audioWav(S.audio.buffer, S.audio.duration, 0);
+      p.bundleAudio = {
+        name: S.project.audioName || S.audio.name || 'song.wav',
+        data: await blobToDataURL(blob)
+      };
+    }
+    const json = JSON.stringify(p, null, 1);
+    J.saveFile(baseName() + '.jizura.json', json);
+    toast('📦 曲と素材を含めたプロジェクトパッケージを保存しました！');
+  });
+
+  // 背景メディア
+  $('mediaBgFile')?.addEventListener('change', async e => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    const url = await blobToDataURL(f);
+    if (!S.project.media) S.project.media = { bg: null, fg: null, overlays: [] };
+    S.project.media.bg = { url, fit: $('mediaBgFit').value, opacity: +$('mediaBgOpacity').value };
+    renderMedia(); replan(); commit(); flushSave(); toast('背景メディアを設定しました');
+  });
+  $('mediaBgClear')?.addEventListener('click', () => {
+    if (S.project.media) S.project.media.bg = null;
+    renderMedia(); replan(); commit(); flushSave(); toast('背景メディアを削除しました');
+  });
+  $('mediaBgFit')?.addEventListener('change', e => {
+    if (S.project.media && S.project.media.bg) { S.project.media.bg.fit = e.target.value; replan(); commit(); flushSave(); }
+  });
+  $('mediaBgOpacity')?.addEventListener('input', e => {
+    if (S.project.media && S.project.media.bg) { S.project.media.bg.opacity = +e.target.value; S.need = true; }
+  });
+
+  // 前景メディア（被写体・切り抜き）
+  $('mediaFgFile')?.addEventListener('change', async e => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    const url = await blobToDataURL(f);
+    if (!S.project.media) S.project.media = { bg: null, fg: null, overlays: [] };
+    S.project.media.fg = { url, chromaKey: $('mediaFgChroma').checked, opacity: +$('mediaFgOpacity').value };
+    renderMedia(); replan(); commit(); flushSave(); toast('前景メディア（被写体）を設定しました（文字が後ろに回ります）');
+  });
+  $('mediaFgClear')?.addEventListener('click', () => {
+    if (S.project.media) S.project.media.fg = null;
+    renderMedia(); replan(); commit(); flushSave(); toast('前景メディアを削除しました');
+  });
+  $('mediaFgChroma')?.addEventListener('change', e => {
+    if (S.project.media && S.project.media.fg) { S.project.media.fg.chromaKey = e.target.checked; replan(); commit(); flushSave(); }
+  });
+  $('mediaFgOpacity')?.addEventListener('input', e => {
+    if (S.project.media && S.project.media.fg) { S.project.media.fg.opacity = +e.target.value; S.need = true; }
+  });
+
+  // オーバーレイ素材追加
+  $('mediaOverlayFile')?.addEventListener('change', async e => {
+    const files = Array.from(e.target.files || []); if (!files.length) return;
+    if (!S.project.media) S.project.media = { bg: null, fg: null, overlays: [] };
+    for (const f of files) {
+      const url = await blobToDataURL(f);
+      S.project.media.overlays.push({ id: Date.now() + Math.random(), name: f.name, url, x: 0.5, y: 0.5, scale: 1, opacity: 1, chromaKey: false });
+    }
+    renderMedia(); replan(); commit(); flushSave(); toast(`${files.length}個のオーバーレイ素材を追加しました`);
+    e.target.value = '';
+  });
   $('btnAE').addEventListener('click', () => J.saveFile(baseName() + rangeSuffix() + '_ae.json', JSON.stringify(J.planForAE(S.plan, S.project, exportRange()), null, 1)));
   audioNameDefault = $('audioName').textContent;
   $('btnClearLyrics').addEventListener('click', clearLyrics);
@@ -1851,13 +1946,23 @@ function bind() {
   $('fileProject').addEventListener('change', async e => {
     const f = e.target.files && e.target.files[0]; if (!f) return;
     try {
-      const np = mergeProject(JSON.parse(await f.text()));
+      const raw = JSON.parse(await f.text());
+      const np = mergeProject(raw);
       if (S.tap) stopTap();
       pause();
       S.project = np;
       // another project: undo and 前の案 / 次の案 belonged to the old one
       ED.undo = []; ED.redo = []; H.list = []; H.i = -1;
       syncUI(); replan(); restoreFonts(); commit(); updateEditBtns(); flushSave();
+      if (raw.bundleAudio && raw.bundleAudio.data) {
+        try {
+          const resp = await fetch(raw.bundleAudio.data);
+          const buf = await resp.arrayBuffer();
+          const afile = new File([buf], raw.bundleAudio.name || 'song.wav', { type: 'audio/wav' });
+          await loadAudioFile(afile, true);
+          toast('🎵 パッケージに含まれる曲と素材を復元しました！');
+        } catch (ae) { console.warn('bundle audio load error', ae); }
+      }
     }
     catch (err) { showMsg('プロジェクトを読み込めませんでした'); setTimeout(() => showMsg(null), 2500); }
     e.target.value = '';

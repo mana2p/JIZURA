@@ -15,6 +15,68 @@ J.cutAt = (plan, t) => {
   return t < c.end ? c : null;
 };
 
+// メディア・画像キャッシュとグリーンバック自動キーイング（クロマキー除去）
+J._mediaImgs = new Map();
+J.getMediaImage = (item) => {
+  if (!item || !item.url) return null;
+  const key = item.url + ':' + (item.chromaKey ? 'ck' : 'raw');
+  let entry = J._mediaImgs.get(key);
+  if (!entry) {
+    const img = new Image();
+    entry = { img, ready: false, canvas: null };
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      entry.ready = true;
+      if (item.chromaKey) {
+        try {
+          const cv = document.createElement('canvas');
+          cv.width = img.naturalWidth || img.width;
+          cv.height = img.naturalHeight || img.height;
+          const x = cv.getContext('2d');
+          x.drawImage(img, 0, 0);
+          const idata = x.getImageData(0, 0, cv.width, cv.height);
+          const d = idata.data;
+          for (let i = 0; i < d.length; i += 4) {
+            const r = d[i], g = d[i + 1], b = d[i + 2];
+            if (g > 70 && g > r * 1.35 && g > b * 1.35) d[i + 3] = 0;
+          }
+          x.putImageData(idata, 0, 0);
+          entry.canvas = cv;
+        } catch (e) {
+          entry.canvas = img;
+        }
+      }
+    };
+    img.src = item.url;
+    J._mediaImgs.set(key, entry);
+  }
+  return entry.ready ? (entry.canvas || entry.img) : null;
+};
+
+J.drawMedia = (ctx, W, H, item) => {
+  if (!item || !item.url) return;
+  const src = J.getMediaImage(item);
+  if (!src) return;
+  const iw = src.width || src.naturalWidth || W, ih = src.height || src.naturalHeight || H;
+  const alpha = item.opacity != null ? J.clamp(item.opacity, 0, 1) : 1;
+  if (alpha <= 0.005) return;
+  ctx.save();
+  ctx.globalAlpha = (ctx.globalAlpha || 1) * alpha;
+  if (item.blend) ctx.globalCompositeOperation = item.blend;
+  if (item.fit === 'contain') {
+    const s = Math.min(W / iw, H / ih), dw = iw * s, dh = ih * s;
+    ctx.drawImage(src, (W - dw) / 2, (H - dh) / 2, dw, dh);
+  } else if (item.fit === 'cover' || !item.fit) {
+    const s = Math.max(W / iw, H / ih), dw = iw * s, dh = ih * s;
+    ctx.drawImage(src, (W - dw) / 2, (H - dh) / 2, dw, dh);
+  } else {
+    const s = (item.scale || 1) * Math.min(W / iw, H / ih), dw = iw * s, dh = ih * s;
+    const cx = (item.x ?? 0.5) * W, cy = (item.y ?? 0.5) * H;
+    ctx.drawImage(src, cx - dw / 2, cy - dh / 2, dw, dh);
+  }
+  ctx.restore();
+};
+
 class Renderer {
   constructor() {
     this.scratch = mk(2, 2); this.small = mk(2, 2); this.tiny = mk(2, 2);
@@ -109,6 +171,12 @@ class Renderer {
     const step = Math.floor(tq / clock + 1e-6);
     const beatInfo = plan.beats && plan.beats.length ? beatAt(plan.beats, tq) : null;
     const energy = plan.energy ? plan.energy[Math.min(plan.energy.length - 1, Math.max(0, Math.floor(t * plan.energyRate)))] : null;
+    // ---------- background media (image/photo) ----------
+    if ((!opt.transparent || layer === 'back') && !key && plan.media && plan.media.bg) {
+      ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+      J.drawMedia(ctx, cw, ch, plan.media.bg);
+      ctx.restore();
+    }
     // ---------- background graphic (per line) ----------
     // 透過PNG 前景／後景 (opt.layer): 'back' = background graphic + the decorations behind the lyrics, 'front' = the rest
     const layer = opt.transparent ? opt.layer || null : null;
@@ -192,6 +260,18 @@ class Renderer {
       const L = this.morphLogs(plan, mPrev, MC, cw, ch, scale, opt);
       const k = J.clamp(mlt / MC.morph.dur), e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
       this.drawMorph(ctx, L, e, allowFilter);
+    }
+    // ---------- foreground subject (cutout / person in front of lyrics) ----------
+    if (plan.media && plan.media.fg && layer !== 'back') {
+      ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+      J.drawMedia(ctx, cw, ch, plan.media.fg);
+      ctx.restore();
+    }
+    // ---------- overlay media (graphics / stickers / multiple green-screen clips) ----------
+    if (plan.media && Array.isArray(plan.media.overlays) && layer !== 'back') {
+      ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+      for (const ov of plan.media.overlays) J.drawMedia(ctx, cw, ch, ov);
+      ctx.restore();
     }
     // ---------- cut-to-cut transition: composite the previous cut's resting frame with this one ----------
     if (!opt.noTrans && mainCut && mainCut.trans && J.TRANS[mainCut.trans] && mainCut.index > 0) {

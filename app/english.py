@@ -29,6 +29,7 @@ BODY = {
     '<label class="row center-dir" hidden>縦長のとき<select class="centerDirSel" aria-label="縦長の画面での分け方"><option value="tb">上下に分ける</option><option value="lr">左右に分ける</option></select></label>': '<label class="row center-dir" hidden>On tall frames<select class="centerDirSel" aria-label="Split on tall frames"><option value="tb">Top / bottom</option><option value="lr">Left / right</option></select></label>',
     '<span>統一感</span>': '<span>Unified look</span>',
     '<span>文字整列</span>': '<span>Typesetting</span>',
+    '<button role="tab" data-tab="media" aria-selected="false">素材</button>': '<button role="tab" data-tab="media" aria-selected="false">Media</button>',
     '<span>統一感<small>パートごとに演出をそろえ、くり返す歌詞は同じ見せ方に。キメ・モーフ・太さの変化も使います</small></span>': '<span>Unified look<small>Parts match; repeated lines look the same. Uses hits, morphs and weight growth</small></span>',
     '<span>文字整列<small>かな詰め・助詞縮小・英字調整・声より0.2秒先行・効果控えめで文字PVらしいタイポグラフィに</small></span>': '<span>Typesetting<small>Tight kana, small particles, Latin spacing, 0.2s lead, restraint</small></span>',
     '<span>統一感<small>パート演出統一、繰り返し共通化、キメ、モーフ、太さ</small></span>': '<span>Unified look<small>Part palettes, repeat matching, hits, morphs, weight</small></span>',

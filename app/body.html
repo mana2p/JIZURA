@@ -184,6 +184,7 @@
         <button role="tab" data-tab="style" aria-selected="true">スタイル</button>
         <button role="tab" data-tab="fx" aria-selected="false">演出</button>
         <button role="tab" data-tab="tech" aria-selected="false">手法</button>
+        <button role="tab" data-tab="media" aria-selected="false">素材</button>
         <button role="tab" data-tab="out" aria-selected="false">書き出し</button>
       </nav>
 
@@ -241,6 +242,43 @@
         <div class="row" style="margin-bottom:10px"><input id="techFilter" type="text" placeholder="手法を名前で絞り込み" style="flex:1" aria-label="手法を名前で絞り込み"><span id="techTotal" class="muted mono"></span></div>
         <p class="note">画面に見えているプレビューは自動でループします。</p>
         <div id="techLists"></div>
+      </div>
+
+      <div class="tabpane" data-pane="media" hidden>
+        <h3>背景メディア（写真・イラスト）</h3>
+        <p class="note">文字の後ろに敷く画像を設定します。</p>
+        <div class="row" style="margin-top:6px;gap:8px">
+          <label class="file">画像を選択<input id="mediaBgFile" type="file" accept="image/*"></label>
+          <button id="mediaBgClear" class="ghost small">削除</button>
+        </div>
+        <div class="row" style="margin-top:6px;gap:10px">
+          <label class="row" style="gap:4px">フィット <select id="mediaBgFit"><option value="cover">画面全体 (cover)</option><option value="contain">全体を収める (contain)</option></select></label>
+          <label class="row" style="gap:4px">不透明度 <input id="mediaBgOpacity" type="range" min="0" max="1" step="0.05" value="1" style="width:70px"></label>
+        </div>
+
+        <h3 style="margin-top:16px">前景メディア（被写体・切り抜き）</h3>
+        <p class="note">文字の手前に被写体を重ねることで、<strong>文字が被写体の後ろに回る立体的な演出</strong>になります。</p>
+        <div class="row" style="margin-top:6px;gap:8px">
+          <label class="file">透過画像／GB画像を選択<input id="mediaFgFile" type="file" accept="image/*"></label>
+          <button id="mediaFgClear" class="ghost small">削除</button>
+        </div>
+        <div class="row" style="margin-top:6px;gap:10px">
+          <label class="row" style="gap:6px"><input id="mediaFgChroma" type="checkbox"> グリーンバック自動除去（緑抜き）</label>
+          <label class="row" style="gap:4px">不透明度 <input id="mediaFgOpacity" type="range" min="0" max="1" step="0.05" value="1" style="width:70px"></label>
+        </div>
+
+        <h3 style="margin-top:16px">オーバーレイ素材（透過素材・ステッカー）</h3>
+        <p class="note">グリーンバック素材や透過PNGを何枚でも重ねて合成できます。</p>
+        <div class="row" style="margin-top:6px;gap:8px">
+          <label class="file">素材を追加<input id="mediaOverlayFile" type="file" accept="image/*" multiple></label>
+        </div>
+        <div id="mediaOverlayList" class="overlay-list" style="margin-top:8px"></div>
+
+        <h3 style="margin-top:16px">プロジェクトまるごと保存</h3>
+        <p class="note">曲（音声データ）や設定、読み込んだ画像素材を<strong>すべて1ファイルにパッケージして保存</strong>します。別のPCやブラウザでも完全に再現できます。</p>
+        <div class="row" style="margin-top:6px">
+          <button id="btnSaveBundle" class="primary">曲・素材入りパッケージを保存 (.jizura.json)</button>
+        </div>
       </div>
 
       <div class="tabpane" data-pane="out" hidden>

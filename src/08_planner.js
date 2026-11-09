@@ -36,6 +36,7 @@ J.defaultProject = () => ({
   locks: { tech: {}, params: {} },   // groups and values Randomize / Shuffle must not change (UI side only)
   colors: { enabled: false },
   fonts: {},
+  media: { bg: null, fg: null, overlays: [] },
 });
 
 /* the original (After Effects-implemented) sets, captured before any expression pack registers */
@@ -298,6 +299,7 @@ J.plan = (project, audio) => {
     centerFree: !!zones, zones,
     typeset: !!project.typeset, unify: !!project.unify,
     lang: J.resolveLang ? J.resolveLang(project) : 'ja',   // 歌詞の言語 (auto → detected)
+    media: project.media || { bg: null, fg: null, overlays: [] },
   };
   if (J.setLang) J.setLang(plan.lang);                     // chunking + measuring below use this language
   if (J.setTypeset) J.setTypeset(plan.typeset);

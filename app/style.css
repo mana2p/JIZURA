@@ -441,3 +441,8 @@ button.small.primary { padding: 4px 12px; }
 /* layout menus are filled on first use: keep their width fixed so nothing jumps */
 .ln .cuts select.cut-lay { width: 112px; }
 .ln .tools select.lay { width: 112px; }
+.overlay-list { display: flex; flex-direction: column; gap: 6px; }
+.overlay-item { display: flex; align-items: center; gap: 8px; padding: 4px 8px; background: var(--raised); border: 1px solid var(--line); border-radius: var(--r); font-size: 11px; }
+.overlay-item img { width: 32px; height: 32px; object-fit: contain; background: #000; border-radius: 2px; }
+.overlay-item .ov-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.overlay-item label { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; color: var(--muted); }
