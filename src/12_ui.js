@@ -866,20 +866,56 @@ function renderLines() {
       sel.dataset.k = String(k);
       // カットの開始時刻 (詳細モード): the first cut starts with the line; the others can be typed (empty = automatic)
       if (k > 0) {
+        const wrap = document.createElement('span');
+        wrap.className = 'cut-time-wrap pro-only';
+        const btnPrev = document.createElement('button');
+        btnPrev.type = 'button';
+        btnPrev.className = 'time-btn time-prev';
+        btnPrev.textContent = '◀';
+        btnPrev.title = '時間を前に（0.05秒・Shiftで0.2秒）';
+        btnPrev.setAttribute('aria-label', `${i + 1}行目 カット${k + 1}を前に`);
         const tIn = document.createElement('input');
         const own = o.cutTime && o.cutTime[k] != null;
-        tIn.type = 'number'; tIn.step = '0.01'; tIn.min = '0'; tIn.className = 'cut-time pro-only mono' + (own ? ' is-forced' : '');
+        tIn.type = 'number'; tIn.step = '0.01'; tIn.min = '0'; tIn.className = 'cut-time mono' + (own ? ' is-forced' : '');
         tIn.value = c.start.toFixed(2); tIn.title = own ? 'このカットの開始時刻（手動）。空にすると自動に戻ります' : 'このカットの開始時刻（自動）。数値を入れると固定します';
         tIn.setAttribute('aria-label', `${i + 1}行目 カット${k + 1}の開始時刻`);
-        tIn.addEventListener('change', e => {
-          const v = parseFloat(e.target.value);
+        const btnNext = document.createElement('button');
+        btnNext.type = 'button';
+        btnNext.className = 'time-btn time-next';
+        btnNext.textContent = '▶';
+        btnNext.title = '時間を後に（0.05秒・Shiftで0.2秒）';
+        btnNext.setAttribute('aria-label', `${i + 1}行目 カット${k + 1}を後に`);
+        wrap.append(btnPrev, tIn, btnNext);
+        const setCutTimeVal = (v) => {
           pushEdit();
           const ct = Object.assign({}, (S.project.overrides[i] || {}).cutTime || {});
-          if (isFinite(v) && e.target.value !== '') ct[k] = +Math.max(0, v - ln.start).toFixed(3); else delete ct[k];
-          setOv(i, { cutTime: Object.keys(ct).length ? ct : undefined }); replan(); seek(Math.max(0, (isFinite(v) ? v : c.start)) + 0.001);
+          if (isFinite(v) && v !== '') {
+            let clamped = Math.max(ln.start, Math.min(ln.end, +v));
+            ct[k] = +Math.max(0, clamped - ln.start).toFixed(3);
+            setOv(i, { cutTime: Object.keys(ct).length ? ct : undefined });
+            replan();
+            seek(clamped + 0.001);
+          } else {
+            delete ct[k];
+            setOv(i, { cutTime: Object.keys(ct).length ? ct : undefined });
+            replan();
+            seek(c.start + 0.001);
+          }
+        };
+        tIn.addEventListener('change', e => {
+          const v = parseFloat(e.target.value);
+          if (e.target.value === '' || !isFinite(v)) setCutTimeVal('');
+          else setCutTimeVal(v);
         });
+        const stepCutTime = (delta, ev) => {
+          const step = ev && ev.shiftKey ? 0.2 : (ev && ev.altKey ? 0.01 : 0.05);
+          const cur = isFinite(c.start) ? c.start : ln.start;
+          setCutTimeVal(cur + delta * step);
+        };
+        btnPrev.addEventListener('click', e => stepCutTime(-1, e));
+        btnNext.addEventListener('click', e => stepCutTime(1, e));
         const pair = document.createElement('div'); pair.className = 'cut-pair';
-        pair.append(tIn, sel); cutsEl.appendChild(pair);
+        pair.append(wrap, sel); cutsEl.appendChild(pair);
       } else cutsEl.appendChild(sel);
     });
     // スマホ: a row is one line of text; tapping it opens its tools (and jumps there)

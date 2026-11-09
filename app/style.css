@@ -118,7 +118,9 @@ button.tap { font: 700 18px/1 var(--mono); letter-spacing: 0.2em; padding: 16px;
 .ln:hover { background: var(--raised); }
 .ln.cur { border-color: var(--line2); background: var(--raised); }
 .ln .no { font: 500 11px var(--mono); color: var(--faint); text-align: right; }
-.ln .time-wrap { display: inline-flex; align-items: center; position: relative; width: 100%; }
+.ln .time-wrap, .ln .cut-time-wrap { display: inline-flex; align-items: center; position: relative; }
+.ln .time-wrap { width: 100%; }
+.ln .cut-time-wrap { width: 96px; flex: none; }
 .ln .time-btn {
   background: var(--raised); border: 1px solid var(--line); color: var(--muted); cursor: pointer;
   padding: 0 4px; height: 24px; display: inline-flex; align-items: center; justify-content: center;
@@ -129,11 +131,12 @@ button.tap { font: 700 18px/1 var(--mono); letter-spacing: 0.2em; padding: 16px;
 .ln .time-btn:active { background: var(--amber); color: #120c00; }
 .ln .time-prev { border-radius: var(--r) 0 0 var(--r); border-right: 0; }
 .ln .time-next { border-radius: 0 var(--r) var(--r) 0; border-left: 0; }
-.ln .time-wrap .time {
+.ln .time-wrap .time, .ln .cut-time-wrap .cut-time {
   border-radius: 0; text-align: center; padding: 3px 2px; min-width: 0; width: 100%; flex: 1; font-size: 11px;
 }
-.ln .time::-webkit-inner-spin-button, .ln .time::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-.ln .time { -moz-appearance: textfield; }
+.ln .time::-webkit-inner-spin-button, .ln .time::-webkit-outer-spin-button,
+.ln .cut-time::-webkit-inner-spin-button, .ln .cut-time::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.ln .time, .ln .cut-time { -moz-appearance: textfield; }
 .ln .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
 .ln .meta { grid-column: 2 / 4; display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; flex-wrap: wrap; }
 .ln .tools { display: flex; gap: 4px; flex: 0 1 auto; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
@@ -445,8 +448,7 @@ button.small.primary { padding: 4px 12px; }
 #app.is-mobile button.play { flex: none; width: 44px; }
 
 /* カットの開始時刻 (詳細モード) and the cut playing now */
-.ln .cut-pair { display: inline-flex; min-width: 0; gap: 2px; align-items: center; }
-.ln .cut-time { width: 64px; font-size: 11px; padding: 2px 4px; }
+.ln .cut-pair { display: inline-flex; min-width: 0; gap: 4px; align-items: center; }
 .ln .cut-time.is-forced { border-color: var(--amber); }
 .ln .cut-lay.playing { box-shadow: 0 0 0 2px var(--amber); }
 .theme-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; margin-top: 8px; }

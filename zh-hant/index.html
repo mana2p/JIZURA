@@ -141,7 +141,9 @@ button.tap { font: 700 18px/1 var(--mono); letter-spacing: 0.2em; padding: 16px;
 .ln:hover { background: var(--raised); }
 .ln.cur { border-color: var(--line2); background: var(--raised); }
 .ln .no { font: 500 11px var(--mono); color: var(--faint); text-align: right; }
-.ln .time-wrap { display: inline-flex; align-items: center; position: relative; width: 100%; }
+.ln .time-wrap, .ln .cut-time-wrap { display: inline-flex; align-items: center; position: relative; }
+.ln .time-wrap { width: 100%; }
+.ln .cut-time-wrap { width: 96px; flex: none; }
 .ln .time-btn {
   background: var(--raised); border: 1px solid var(--line); color: var(--muted); cursor: pointer;
   padding: 0 4px; height: 24px; display: inline-flex; align-items: center; justify-content: center;
@@ -152,11 +154,12 @@ button.tap { font: 700 18px/1 var(--mono); letter-spacing: 0.2em; padding: 16px;
 .ln .time-btn:active { background: var(--amber); color: #120c00; }
 .ln .time-prev { border-radius: var(--r) 0 0 var(--r); border-right: 0; }
 .ln .time-next { border-radius: 0 var(--r) var(--r) 0; border-left: 0; }
-.ln .time-wrap .time {
+.ln .time-wrap .time, .ln .cut-time-wrap .cut-time {
   border-radius: 0; text-align: center; padding: 3px 2px; min-width: 0; width: 100%; flex: 1; font-size: 11px;
 }
-.ln .time::-webkit-inner-spin-button, .ln .time::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-.ln .time { -moz-appearance: textfield; }
+.ln .time::-webkit-inner-spin-button, .ln .time::-webkit-outer-spin-button,
+.ln .cut-time::-webkit-inner-spin-button, .ln .cut-time::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.ln .time, .ln .cut-time { -moz-appearance: textfield; }
 .ln .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
 .ln .meta { grid-column: 2 / 4; display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; flex-wrap: wrap; }
 .ln .tools { display: flex; gap: 4px; flex: 0 1 auto; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
@@ -468,8 +471,7 @@ button.small.primary { padding: 4px 12px; }
 #app.is-mobile button.play { flex: none; width: 44px; }
 
 /* カットの開始時刻 (詳細モード) and the cut playing now */
-.ln .cut-pair { display: inline-flex; min-width: 0; gap: 2px; align-items: center; }
-.ln .cut-time { width: 64px; font-size: 11px; padding: 2px 4px; }
+.ln .cut-pair { display: inline-flex; min-width: 0; gap: 4px; align-items: center; }
 .ln .cut-time.is-forced { border-color: var(--amber); }
 .ln .cut-lay.playing { box-shadow: 0 0 0 2px var(--amber); }
 .theme-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; margin-top: 8px; }
@@ -37444,20 +37446,56 @@ function renderLines() {
       sel.dataset.k = String(k);
       //  個片段の開始時刻 (詳細モード): the first cut starts with the line; the others can be typed (empty = automatic)
       if (k > 0) {
+        const wrap = document.createElement('span');
+        wrap.className = 'cut-time-wrap pro-only';
+        const btnPrev = document.createElement('button');
+        btnPrev.type = 'button';
+        btnPrev.className = 'time-btn time-prev';
+        btnPrev.textContent = '◀';
+        btnPrev.title = '提前時間（0.05秒、Shift為0.2秒）';
+        btnPrev.setAttribute('aria-label', `第 ${i + 1} 行 將片段 ${k + 1} 提前`);
         const tIn = document.createElement('input');
         const own = o.cutTime && o.cutTime[k] != null;
-        tIn.type = 'number'; tIn.step = '0.01'; tIn.min = '0'; tIn.className = 'cut-time pro-only mono' + (own ? ' is-forced' : '');
+        tIn.type = 'number'; tIn.step = '0.01'; tIn.min = '0'; tIn.className = 'cut-time mono' + (own ? ' is-forced' : '');
         tIn.value = c.start.toFixed(2); tIn.title = own ? '此片段的開始時間（手動）。清空即恢復自動' : '此片段的開始時間（自動）。輸入數值即可固定';
         tIn.setAttribute('aria-label', `第 ${i + 1} 行 片段 ${k + 1} 的開始時間`);
-        tIn.addEventListener('change', e => {
-          const v = parseFloat(e.target.value);
+        const btnNext = document.createElement('button');
+        btnNext.type = 'button';
+        btnNext.className = 'time-btn time-next';
+        btnNext.textContent = '▶';
+        btnNext.title = '延後時間（0.05秒、Shift為0.2秒）';
+        btnNext.setAttribute('aria-label', `第 ${i + 1} 行 將片段 ${k + 1} 延後`);
+        wrap.append(btnPrev, tIn, btnNext);
+        const setCutTimeVal = (v) => {
           pushEdit();
           const ct = Object.assign({}, (S.project.overrides[i] || {}).cutTime || {});
-          if (isFinite(v) && e.target.value !== '') ct[k] = +Math.max(0, v - ln.start).toFixed(3); else delete ct[k];
-          setOv(i, { cutTime: Object.keys(ct).length ? ct : undefined }); replan(); seek(Math.max(0, (isFinite(v) ? v : c.start)) + 0.001);
+          if (isFinite(v) && v !== '') {
+            let clamped = Math.max(ln.start, Math.min(ln.end, +v));
+            ct[k] = +Math.max(0, clamped - ln.start).toFixed(3);
+            setOv(i, { cutTime: Object.keys(ct).length ? ct : undefined });
+            replan();
+            seek(clamped + 0.001);
+          } else {
+            delete ct[k];
+            setOv(i, { cutTime: Object.keys(ct).length ? ct : undefined });
+            replan();
+            seek(c.start + 0.001);
+          }
+        };
+        tIn.addEventListener('change', e => {
+          const v = parseFloat(e.target.value);
+          if (e.target.value === '' || !isFinite(v)) setCutTimeVal('');
+          else setCutTimeVal(v);
         });
+        const stepCutTime = (delta, ev) => {
+          const step = ev && ev.shiftKey ? 0.2 : (ev && ev.altKey ? 0.01 : 0.05);
+          const cur = isFinite(c.start) ? c.start : ln.start;
+          setCutTimeVal(cur + delta * step);
+        };
+        btnPrev.addEventListener('click', e => stepCutTime(-1, e));
+        btnNext.addEventListener('click', e => stepCutTime(1, e));
         const pair = document.createElement('div'); pair.className = 'cut-pair';
-        pair.append(tIn, sel); cutsEl.appendChild(pair);
+        pair.append(wrap, sel); cutsEl.appendChild(pair);
       } else cutsEl.appendChild(sel);
     });
     // スマホ: a row is one line of text; tapping it opens its tools (and jumps there)
