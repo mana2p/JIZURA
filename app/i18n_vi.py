@@ -336,6 +336,8 @@ UI = {
     '`${ln.index + 1}行目の歌詞`': '`Lời dòng ${ln.index + 1}`',
     "'記法（/ 区切り・*強調*・行末の ! ・| 注釈・[間奏 8]）もそのまま使えます。Enter で確定、Esc で取り消し'": "'Cú pháp lời cũng dùng ở đây (/ cắt, *nhấn mạnh*, ! cuối dòng, | chú thích, [interlude 8]). Enter để áp dụng, Esc để hủy'",
     '`${ln.index + 1}行目の歌詞を直しました`': '`Dòng ${ln.index + 1} đã cập nhật`',
+    'title="この行を削除" aria-label="${i + 1}行目を削除"': 'title="Xóa dòng này" aria-label="Xóa dòng ${i + 1}"',
+    '`${i + 1}行目を削除しました（Ctrl+Z で戻せます）`': '`Đã xóa dòng ${i + 1} (Có thể hoàn tác bằng Ctrl+Z)`',
     "'元に戻しました' : 'やり直しました'": "'Đã hoàn tác' : 'Đã làm lại'",
     "`書き出す範囲：${R2.from + 1}${R2.to > R2.from ? '〜' + (R2.to + 1) : ''}行目` : '書き出す範囲：全体'": "`Phạm vi xuất: hàng ${R2.from + 1}${R2.to > R2.from ? '–' + (R2.to + 1) : ''}` : 'Phạm vi xuất bản: tất cả các bài hát'",
     "'〔間奏〕' : ln.text).slice(0, 14)": "'[interlude]' : ln.text).slice(0, 14)",

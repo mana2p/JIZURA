@@ -183,6 +183,7 @@ button.play { width: 40px; height: 34px; padding: 0; font-size: 14px; }
 .ln.is-inter .txt { color: var(--muted); font-style: italic; }
 .ln .txt-edit { width: 100%; padding: 3px 6px; font-size: 13px; }
 .ln .tools .icon[aria-pressed=true] { color: var(--amber); }
+.ln .tools .del:hover { color: var(--danger); border-color: var(--danger); }
 #timeline { width: 100%; height: 76px; display: block; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); cursor: pointer; touch-action: none; }
 .cutinfo { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; min-height: 26px; flex: none; }
 .cutinfo .cut-roll { margin-left: 2px; }
@@ -3861,8 +3862,15 @@ J.plan = (project, audio) => {
   // 文字整列: the lyrics appear 0.2 s before the voice (reading ahead feels in time)
   if (project.typeset) {
     const LEAD = 0.2;
-    tm.starts = tm.starts.map(t => Math.max(0, t - LEAD));
-    tm.ends = tm.ends.map((t, i) => Math.max(tm.starts[i] + 0.3, t - LEAD));
+    const manual = (project.timing && project.timing.lineTimes) || {};
+    tm.starts = tm.starts.map((t, i) => (manual[i] != null && isFinite(+manual[i])) ? t : Math.max(0, t - LEAD));
+    for (let i = 0; i < tm.ends.length; i++) {
+      if (i < tm.starts.length - 1) {
+        tm.ends[i] = Math.max(tm.starts[i] + 0.35, tm.starts[i + 1]);
+      } else {
+        tm.ends[i] = Math.max(tm.starts[i] + 0.3, (manual[i] != null && isFinite(+manual[i])) ? tm.ends[i] : tm.ends[i] - LEAD);
+      }
+    }
   }
   const [W, H] = J.designSize(project.aspect);
   // enabled map: anything not explicitly switched off is on (new pack entries appear enabled in old projects);
@@ -36532,6 +36540,7 @@ const ICON = {
   tapOne: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6.2"/><path d="M7 6.5l1.6-.9v5.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   range: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 3v10M13 3v10"/><path d="M5.5 8h5M8.5 5.5L11 8l-2.5 2.5"/></svg>',
   variants: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2" y="2.5" width="3.2" height="4.5" rx="0.8"/><rect x="6.4" y="2.5" width="3.2" height="4.5" rx="0.8"/><rect x="10.8" y="2.5" width="3.2" height="4.5" rx="0.8"/><rect x="2" y="9" width="3.2" height="4.5" rx="0.8"/><rect x="6.4" y="9" width="3.2" height="4.5" rx="0.8"/><rect x="10.8" y="9" width="3.2" height="4.5" rx="0.8"/></svg>',
+  trash: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2.5 4.5h11M5.5 4.5V3a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.5M4 4.5l.8 9a1.5 1.5 0 0 0 1.5 1.5h3.4a1.5 1.5 0 0 0 1.5-1.5l.8-9M6.5 7.5v4.5M9.5 7.5v4.5"/></svg>',
 };
 
 const S = { project: null, plan: null, audio: null, renderer: new J.Renderer(), playing: false, t: 0, t0: 0, loop: 'all', loopHold: null, need: true, exporting: null, tap: null, slow: false, lineEls: [], curLine: -2 };
@@ -37312,6 +37321,7 @@ function renderLines() {
         <button class="icon ghost rng" title="设为导出范围（Shift+点击可扩大范围）" aria-pressed="${R && i >= R.from && i <= R.to ? 'true' : 'false'}" aria-label="将第 ${i + 1} 行设为导出范围">${ICON.range}</button>
         ${ln.interlude ? '' : `<button class="icon ghost dice" title="重新随机这一行">${ICON.dice}</button>`}
         ${ln.interlude ? '' : `<button class="icon ghost lock" title="锁定这一行的编排" aria-pressed="${o.lock ? 'true' : 'false'}">${ICON.lock}</button>`}
+        <button class="icon ghost del" title="删除此行" aria-label="删除第 ${i + 1} 行">${ICON.trash}</button>
       </span></div>`;
     const q = sel => li.querySelector(sel);
     if (q('.variants')) q('.variants').addEventListener('click', () => openVariants(i));
@@ -37324,10 +37334,10 @@ function renderLines() {
       if (isFinite(v)) {
         // keep the order: a typed time stays between the fixed times (typed or LRC) of the lines around it
         const lt = S.project.timing.lineTimes, L = S.plan.lines;
-        const fix = j => (lt[j] != null && isFinite(+lt[j])) ? +lt[j] : (L[j] && L[j].lrc != null ? L[j].lrc : null);
+        const isFix = j => (lt[j] != null && isFinite(+lt[j])) || (L[j] && L[j].lrc != null);
         let lo = 0, hi = Infinity;
-        for (let j = i - 1; j >= 0; j--) { const f = fix(j); if (f != null) { lo = f + 0.05; break; } }
-        for (let j = i + 1; j < L.length; j++) { const f = fix(j); if (f != null) { hi = f - 0.05; break; } }
+        for (let j = i - 1; j >= 0; j--) { if (isFix(j) && L[j]) { lo = L[j].start + 0.05; break; } }
+        for (let j = i + 1; j < L.length; j++) { if (isFix(j) && L[j]) { hi = L[j].start - 0.05; break; } }
         let w = Math.max(0, v);
         if (hi >= lo && (w < lo || w > hi)) { w = J.clamp(w, lo, hi); toast(`为了不与前后的行交换顺序，已设为 ${w.toFixed(2)} 秒`); }
         lt[i] = +w.toFixed(3);
@@ -37349,6 +37359,7 @@ function renderLines() {
       else setOv(i, { lock: true, lockedSeed: ln.seed, lockedCuts: J.lineSnapshot(S.plan, i) || undefined });
       replan();
     });
+    if (q('.del')) q('.del').addEventListener('click', () => deleteLine(i));
     const cutsEl = q('.cuts');
     S.plan.cuts.filter(c => c.line === i && J.LAYOUTS[c.layout] && !J.LAYOUTS[c.layout].special).forEach((c, k) => {
       const forced = o.cutLayouts && o.cutLayouts[k];
@@ -37417,6 +37428,67 @@ function editLine(li, ln) {
   };
   inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); finish(true); } else if (e.key === 'Escape') { e.preventDefault(); finish(false); } });
   inp.addEventListener('blur', () => finish(true));
+}
+
+function deleteLine(i) {
+  if (S.tap || S.exporting) return;
+  const ln = S.plan && S.plan.lines && S.plan.lines[i];
+  if (!ln) return;
+  const P = S.project;
+  const snap = JSON.parse(edSnap()); snap.ov = P.overrides || {}; snap.range = P.exportRange || null;
+  ED.undo.push(JSON.stringify(snap)); if (ED.undo.length > 60) ED.undo.shift(); ED.redo = [];
+  updateEditBtns();
+
+  const rows = P.lyrics.replace(/\r/g, '').split('\n');
+  if (ln.src != null && ln.src >= 0 && ln.src < rows.length) {
+    const row = rows[ln.src];
+    const timeMatches = [...row.matchAll(/\[(\d+):(\d+(?:[.:]\d+)?)\]/g)];
+    if (timeMatches.length > 1 && ln.lrc != null) {
+      const targetTag = timeMatches.find(m => {
+        const t = +m[1] * 60 + parseFloat(m[2].replace(':', '.'));
+        return Math.abs(t - ln.lrc) < 0.001;
+      });
+      if (targetTag) {
+        rows[ln.src] = row.replace(targetTag[0], '').trim();
+      } else {
+        rows.splice(ln.src, 1);
+      }
+    } else {
+      rows.splice(ln.src, 1);
+    }
+    P.lyrics = rows.join('\n');
+    if ($('lyrics')) $('lyrics').value = P.lyrics;
+  }
+
+  const shiftKeys = obj => {
+    if (!obj) return {};
+    const res = {};
+    for (const [k, v] of Object.entries(obj)) {
+      const idx = +k;
+      if (!Number.isInteger(idx)) { res[k] = v; continue; }
+      if (idx === i) continue;
+      if (idx > i) res[idx - 1] = v;
+      else res[idx] = v;
+    }
+    return res;
+  };
+  P.timing.lineTimes = shiftKeys(P.timing.lineTimes);
+  P.overrides = shiftKeys(P.overrides);
+
+  const R = P.exportRange;
+  if (R && Number.isInteger(R.from) && Number.isInteger(R.to)) {
+    if (R.from === R.to && R.from === i) {
+      P.exportRange = null;
+    } else {
+      const from = R.from > i ? R.from - 1 : R.from;
+      const to = R.to >= i ? Math.max(from, R.to - 1) : R.to;
+      P.exportRange = { from, to };
+    }
+  }
+
+  replan();
+  flushSave();
+  toast(`已删除第 ${i + 1} 行（可用 Ctrl+Z 恢复）`);
 }
 
 /* ---------------- 歌詞 · タイミングの取り消し（Ctrl+Z） ---------------- */

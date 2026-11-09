@@ -232,6 +232,8 @@ UI = {
     '`${ln.index + 1}行目の歌詞`': '`Lyrics of line ${ln.index + 1}`',
     "'記法（/ 区切り・*強調*・行末の ! ・| 注釈・[間奏 8]）もそのまま使えます。Enter で確定、Esc で取り消し'": "'Lyric syntax works here too (/ cut, *emphasis*, final !, | note, [interlude 8]). Enter to apply, Esc to cancel'",
     '`${ln.index + 1}行目の歌詞を直しました`': '`Line ${ln.index + 1} updated`',
+    'title="この行を削除" aria-label="${i + 1}行目を削除"': 'title="Delete this line" aria-label="Delete line ${i + 1}"',
+    '`${i + 1}行目を削除しました（Ctrl+Z で戻せます）`': '`Line ${i + 1} deleted (Undo or Ctrl+Z brings it back)`',
     "'元に戻しました' : 'やり直しました'": "'Undone' : 'Redone'",
     "`書き出す範囲：${R2.from + 1}${R2.to > R2.from ? '〜' + (R2.to + 1) : ''}行目` : '書き出す範囲：全体'": "`Export range: line ${R2.from + 1}${R2.to > R2.from ? '–' + (R2.to + 1) : ''}` : 'Export range: whole song'",
     "'〔間奏〕' : ln.text).slice(0, 14)": "'[interlude]' : ln.text).slice(0, 14)",

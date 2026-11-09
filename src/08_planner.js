@@ -276,8 +276,15 @@ J.plan = (project, audio) => {
   // 文字整列: the lyrics appear 0.2 s before the voice (reading ahead feels in time)
   if (project.typeset) {
     const LEAD = 0.2;
-    tm.starts = tm.starts.map(t => Math.max(0, t - LEAD));
-    tm.ends = tm.ends.map((t, i) => Math.max(tm.starts[i] + 0.3, t - LEAD));
+    const manual = (project.timing && project.timing.lineTimes) || {};
+    tm.starts = tm.starts.map((t, i) => (manual[i] != null && isFinite(+manual[i])) ? t : Math.max(0, t - LEAD));
+    for (let i = 0; i < tm.ends.length; i++) {
+      if (i < tm.starts.length - 1) {
+        tm.ends[i] = Math.max(tm.starts[i] + 0.35, tm.starts[i + 1]);
+      } else {
+        tm.ends[i] = Math.max(tm.starts[i] + 0.3, (manual[i] != null && isFinite(+manual[i])) ? tm.ends[i] : tm.ends[i] - LEAD);
+      }
+    }
   }
   const [W, H] = J.designSize(project.aspect);
   // enabled map: anything not explicitly switched off is on (new pack entries appear enabled in old projects);
