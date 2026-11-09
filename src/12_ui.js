@@ -2007,7 +2007,10 @@ function syncUI() {
   document.querySelectorAll('.extra-toggle').forEach(el => { el.checked = S.project.extra === true; });
   for (const set of J.SET_ORDER) document.querySelectorAll('.' + set + '-toggle').forEach(el => { el.checked = J.setOn(S.project, set); });
   document.querySelectorAll('.unify-toggle').forEach(el => { el.checked = S.project.unify === true; });
-  document.querySelectorAll('.typeset-toggle').forEach(el => { el.checked = S.project.typeset === true; });
+  document.querySelectorAll('.typeset-toggle').forEach(el => { el.checked = S.project.typeset !== false; });
+  document.querySelectorAll('.typeset-kana-toggle').forEach(el => { el.checked = S.project.typesetKana !== false; });
+  document.querySelectorAll('.typeset-lead-toggle').forEach(el => { el.checked = S.project.typesetLead !== false; });
+  document.querySelectorAll('.typeset-restraint-toggle').forEach(el => { el.checked = S.project.typesetRestraint !== false; });
   $('lyricLang').value = J.LANG_LABEL[S.project.lang] ? S.project.lang : 'auto'; langNote();
   document.querySelectorAll('.themeSel').forEach(el => { el.value = J.THEMES[S.project.themeId] ? S.project.themeId : ''; });
   renderFontRoles(); renderColors(); renderFx(); renderTech(); renderMedia(); syncOut(); drawStyleGrid();
@@ -2129,6 +2132,9 @@ function bind() {
   setSwitch('horror-toggle', 'horror', true, 'ホラーの演出：使う（おまかせの雰囲気に「ホラー」が加わります）', 'ホラーの演出：使わない');
   setSwitch('unify-toggle', 'unify', true, '統一感：オン（パートごとにそろえ、キメ・モーフ・太さも使います）', '統一感：オフ');
   setSwitch('typeset-toggle', 'typeset', true, '文字整列：オン（字間・助詞・英字・0.2秒先・効果控えめ）', '文字整列：オフ');
+  setSwitch('typeset-kana-toggle', 'typesetKana', true, 'かな詰め・助詞縮小：オン（字間・助詞縮小・英字調整・頭字拡大）', 'かな詰め・助詞縮小：オフ');
+  setSwitch('typeset-lead-toggle', 'typesetLead', true, '0.2秒先行表示：オン（歌声より0.2秒前・0秒保護）', '0.2秒先行表示：オフ');
+  setSwitch('typeset-restraint-toggle', 'typesetRestraint', true, '効果控えめ：オン（装飾最大1個・文字加工重複禁止・効果1個）', '効果控えめ：オフ');
   $('fxKoma').addEventListener('change', e => { const k = +e.target.value; S.project.fx.koma = k; S.project.fx.onTwos = k > 0; S.project.mood = null; replan(); });
   $('fxHud').addEventListener('change', e => { S.project.fx.hud = e.target.value; replan(); });
   $('fxHideNo').addEventListener('change', e => { remember(); S.project.fx.hideNo = e.target.checked; replan(); commit(); });

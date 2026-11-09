@@ -24,7 +24,10 @@ J.defaultProject = () => ({
   lang: 'auto',                   // 歌詞の言語: 'auto' | 'ja' | 'zh-Hant' | 'zh-Hans' | 'ko' — picks the faces each font key is drawn with
   keyBg: 'off',                   // 合成用の背景: 'off' | 'green' (グリーンバック) | 'black' (ブラックバック)
   unify: true,                    // 統一感: part palettes, repeats shown the same way, キメ, モーフ, 太さ
-  typeset: true,                  // 文字整列: kana tracking, small particles / big first character, Latin sizing, 0.2 s lead, restraint
+  typeset: true,                  // 文字整列 (マスター/後方互換用)
+  typesetKana: true,              // かな詰め・助詞縮小・英字調整・頭字拡大
+  typesetLead: true,              // 0.2秒先行表示 (内部描画先行・0秒保護)
+  typesetRestraint: true,         // 効果控えめ (装飾1個・文字加工重複禁止・効果1個)
   centerDir: 'tb',                // 中央を空ける on tall frames: 'tb' = top / bottom, 'lr' = left / right
   centerFree: false,              // 中央を空ける: lay the cuts out in side bands (left / right or top / bottom) around a character
   seed: 20260922,
@@ -273,19 +276,6 @@ J.plan = (project, audio) => {
   const title = project.title || parsed.meta.ti || '';
   const artist = project.artist || parsed.meta.ar || '';
   const tm = J.computeTiming(project, parsed, audio);
-  // 文字整列: the lyrics appear 0.2 s before the voice (reading ahead feels in time)
-  if (project.typeset) {
-    const LEAD = 0.2;
-    const manual = (project.timing && project.timing.lineTimes) || {};
-    tm.starts = tm.starts.map((t, i) => (manual[i] != null && isFinite(+manual[i])) ? t : Math.max(0, t - LEAD));
-    for (let i = 0; i < tm.ends.length; i++) {
-      if (i < tm.starts.length - 1) {
-        tm.ends[i] = Math.max(tm.starts[i] + 0.35, tm.starts[i + 1]);
-      } else {
-        tm.ends[i] = Math.max(tm.starts[i] + 0.3, (manual[i] != null && isFinite(+manual[i])) ? tm.ends[i] : tm.ends[i] - LEAD);
-      }
-    }
-  }
   const [W, H] = J.designSize(project.aspect);
   // enabled map: anything not explicitly switched off is on (new pack entries appear enabled in old projects);
   // then the 追加分 / 和風 switches decide what random picks may use (a per-line override still works)
@@ -297,6 +287,7 @@ J.plan = (project, audio) => {
   // the lyric of every cut is split in two: the first half in band 0 (left / top), the second in band 1 (right / bottom)
   const zoneOf = () => (zones ? Object.assign({}, zones[0]) : null);
   if (zones && en.bg) en.bg.bigChar = false;               // the one background that draws the lyric itself (big, centred)
+  const isTypesetMaster = project.typeset !== false;
   const plan = {
     version: 1, generator: 'JIZURA', appVersion: '@VERSION@', title, artist, W, H, fps: project.fps || 24,
     duration: tm.duration, styleKey: project.style, style: st, fx, seed: project.seed,
@@ -304,12 +295,16 @@ J.plan = (project, audio) => {
     hud: fx.hud === 'on' ? true : fx.hud === 'off' ? false : !!st.hud,
     keyBg: J.keyMode ? J.keyMode(project) : null,   // 'green' | 'black' | null — 合成用の背景
     centerFree: !!zones, zones,
-    typeset: !!project.typeset, unify: !!project.unify,
+    typeset: isTypesetMaster,
+    typesetKana: isTypesetMaster && project.typesetKana !== false,
+    typesetLead: isTypesetMaster && project.typesetLead !== false,
+    typesetRestraint: isTypesetMaster && project.typesetRestraint !== false,
+    unify: !!project.unify,
     lang: J.resolveLang ? J.resolveLang(project) : 'ja',   // 歌詞の言語 (auto → detected)
     media: project.media || { bg: null, fg: null, overlays: [] },
   };
   if (J.setLang) J.setLang(plan.lang);                     // chunking + measuring below use this language
-  if (J.setTypeset) J.setTypeset(plan.typeset);
+  if (J.setTypeset) J.setTypeset(plan.typesetKana);
   const beats = plan.beats;
   const snap = (t) => {
     if (!beats.length || !(project.timing && project.timing.snap)) return t;
@@ -562,8 +557,8 @@ J.plan = (project, audio) => {
       if (morph) cut.morph = morph;
       if (UU) UU.remember(li, k, txt, cut);
       if (zones) splitCut(cut, halves, zones, st, dur, LS);
-      // 文字整列: effects don't pile up — one decoration, no text treatment on top of it
-      if (plan.typeset) { cut.decor = cut.decor.slice(0, 1); if (cut.decor.length && cut.treat !== 'none') { cut.treat = 'none'; cut.treatP = {}; } }
+      // 効果控えめ (typesetRestraint): 装飾最大1個、文字加工との重複禁止
+      if (plan.typesetRestraint) { cut.decor = cut.decor.slice(0, 1); if (cut.decor.length && cut.treat !== 'none') { cut.treat = 'none'; cut.treatP = {}; } }
       plan.cuts.push(cut);
       const evMark = plan.events.length;
       // history = what the draw gave (with the usual join), so a per-cut pick never shifts the later cuts
@@ -595,8 +590,8 @@ J.plan = (project, audio) => {
       }
       if (dur > 1.1) { const pick = pickFx(rng, st, en, fx, emph, fxHistory, 'mid'); if (pick) { const D2 = J.FXE[pick]; addEvent(cs + rng.range(0.4, 0.75) * dur, pick, (D2.amp || 1) * (0.5 + 0.4 * g), (D2.dur || 3) * F); } }
       if (LS && Array.isArray(LS.events)) { plan.events.splice(evMark); for (const e of LS.events) plan.events.push({ t: cs + e.dt, type: e.type, amp: e.amp, dur: e.dur }); }
-      // 文字整列: at most one screen effect per cut besides the colour split (the キメ line keeps its accents)
-      if (plan.typeset && !cut.kime && !LS) {
+      // 効果控えめ (typesetRestraint): 画面効果は1カット最大1個に制限
+      if (plan.typesetRestraint && !cut.kime && !LS) {
         const mine = plan.events.splice(evMark);
         let extra = 0;
         for (const e of mine) if (e.type === 'chroma' || e.type === 'shake' && emph || extra++ < 1) plan.events.push(e);
@@ -611,11 +606,27 @@ J.plan = (project, audio) => {
     }
   });
   plan.cuts.sort((a, b) => a.start - b.start);
+  const leadSec = plan.typesetLead ? 0.2 : 0;
   plan.cuts.forEach((c, i) => {
     c.index = i;
+    // 0.2秒先行: 表示秒数（start / end）は歌詞と完全一致させ、内部描画だけ0.2秒前倒しする（0秒はマイナスにしない）
+    c.lead = (leadSec > 0 && c.layout !== 'interlude' && c.layout !== 'title') ? Math.min(leadSec, c.start) : 0;
+    c.drawStart = Math.max(0, c.start - c.lead);
+    c.drawEnd = c.end;
+    if (i > 0) {
+      const prev = plan.cuts[i - 1];
+      if (prev.drawEnd > c.drawStart) {
+        prev.drawEnd = Math.max(prev.drawStart + 0.05, c.drawStart);
+      }
+    }
     if (!zones || c.zone) return;
     if (c.layout === 'interlude') { c.params = Object.assign({}, c.params, { showTitle: false }); return; }   // no lyric: the whole frame
     c.zone = zoneOf(c.line);
+  });
+  plan.lines.forEach(ln => {
+    ln.lead = (leadSec > 0 && !ln.interlude) ? Math.min(leadSec, ln.start) : 0;
+    ln.drawStart = Math.max(0, ln.start - ln.lead);
+    ln.drawEnd = ln.end;
   });
   plan.events.sort((a, b) => a.t - b.t);
   plan.energy = audio && audio.energy ? audio.energy : null;

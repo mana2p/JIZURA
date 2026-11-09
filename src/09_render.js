@@ -9,10 +9,15 @@ const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Mat
 
 J.cutAt = (plan, t) => {
   const cs = plan.cuts; let lo = 0, hi = cs.length - 1, ans = -1;
-  while (lo <= hi) { const m = (lo + hi) >> 1; if (cs[m].start <= t) { ans = m; lo = m + 1; } else hi = m - 1; }
+  while (lo <= hi) {
+    const m = (lo + hi) >> 1;
+    const s = cs[m].drawStart != null ? cs[m].drawStart : cs[m].start;
+    if (s <= t) { ans = m; lo = m + 1; } else hi = m - 1;
+  }
   if (ans < 0) return null;
   const c = cs[ans];
-  return t < c.end ? c : null;
+  const e = c.drawEnd != null ? c.drawEnd : c.end;
+  return t < e ? c : null;
 };
 
 // メディア・画像キャッシュとグリーンバック自動キーイング（クロマキー除去）
@@ -180,8 +185,9 @@ class Renderer {
     // ---------- background graphic (per line) ----------
     // 透過PNG 前景／後景 (opt.layer): 'back' = background graphic + the decorations behind the lyrics, 'front' = the rest
     const layer = opt.transparent ? opt.layer || null : null;
+    const mStart = mainCut ? (mainCut.drawStart != null ? mainCut.drawStart : mainCut.start) : 0;
     if ((!opt.transparent || layer === 'back') && !key && mainCut && mainCut.bg && mainCut.bg !== 'none' && J.BG[mainCut.bg]) {
-      const env = this.makeEnv(ctx, plan, mainCut, sc, { pass: 'main', t: tq, lt: tq - mainCut.start, ltb: tq - mainCut.start, step, scale, allowFilter, energy, beat: beatInfo, bgOnly: true });
+      const env = this.makeEnv(ctx, plan, mainCut, sc, { pass: 'main', t: tq, lt: tq - mStart, ltb: tq - mStart, step, scale, allowFilter, energy, beat: beatInfo, bgOnly: true });
       ctx.save();
       try { J.BG[mainCut.bg].draw(env, mainCut.bgP || {}); } catch (e) { console.warn('bg', mainCut.bg, e); }
       ctx.restore();
@@ -197,15 +203,15 @@ class Renderer {
     const ghostOn = (fx.chroma ?? 0.7) > 0.02 && (st.ghost ?? 1) > 0.02 && !opt.noGhost;
     // モーフ (統一感): during the first moments of a morph cut its lyric is drawn by drawMorph (glyphs glide / melt)
     const MC = !opt.noTrans && !opt.glyphLog && mainCut && mainCut.morph && mainCut.index > 0 ? mainCut : null;
-    const mPrev = MC ? plan.cuts[MC.index - 1] : null, mlt = MC ? tq - MC.start : 0;
-    const morphOn = !!(MC && mPrev && mlt < MC.morph.dur && Math.abs(mPrev.end - MC.start) < 0.06);
+    const mPrev = MC ? plan.cuts[MC.index - 1] : null, mlt = MC ? tq - (MC.drawStart != null ? MC.drawStart : MC.start) : 0;
+    const morphOn = !!(MC && mPrev && mlt < MC.morph.dur && Math.abs(mPrev.end - (MC.drawStart != null ? MC.drawStart : MC.start)) < 0.06);
     let mainBB = null, mainEnv = null;
     // camera blur (focus pulls etc.) is applied ONCE to the whole content layer — a blur filter on every
     // individual draw call is extremely slow when a layout draws many text rows
     let layerBlur = 0, LX = null;
     if (allowFilter && mainCut && J.CAMERA[mainCut.cam] && mainCut.cam !== 'push') {
       try {
-        const e0 = this.makeEnv(ctx, plan, mainCut, sc, { pass: 'main', t: tq, lt: tq - mainCut.start, ltb: tq - mainCut.start, step, scale, allowFilter, energy, beat: beatInfo });
+        const e0 = this.makeEnv(ctx, plan, mainCut, sc, { pass: 'main', t: tq, lt: tq - mStart, ltb: tq - mStart, step, scale, allowFilter, energy, beat: beatInfo });
         const c0 = J.CAMERA[mainCut.cam].get(e0, mainCut.camP || {});
         if (c0 && c0.blur > 0.4) layerBlur = c0.blur;
       } catch (e) {}
@@ -224,7 +230,8 @@ class Renderer {
       // 中央を空ける: the cut in its band, and its companion (echo / whole line / decorations) in the other band
       for (const cut of plan.centerFree && cut0.companion ? [cut0, cut0.companion] : [cut0]) {
       const csc = st.schemes[cut.scheme % st.schemes.length] || st.schemes[0];
-      const lt = tp - cut.start;
+      const cStart = cut.drawStart != null ? cut.drawStart : cut.start;
+      const lt = tp - cStart;
       const X = LX || ctx;
       const Z = plan.centerFree && cut.zone ? cut.zone : null;
       const env = this.makeEnv(X, plan, cut, csc, {
@@ -275,9 +282,11 @@ class Renderer {
     }
     // ---------- cut-to-cut transition: composite the previous cut's resting frame with this one ----------
     if (!opt.noTrans && mainCut && mainCut.trans && J.TRANS[mainCut.trans] && mainCut.index > 0) {
-      const lt = tq - mainCut.start, dur = mainCut.transDur || 0.35;
+      const ms = mainCut.drawStart != null ? mainCut.drawStart : mainCut.start;
+      const lt = tq - ms, dur = mainCut.transDur || 0.35;
       const prev = plan.cuts[mainCut.index - 1];
-      if (lt < dur && prev && Math.abs(prev.end - mainCut.start) < 0.06) {
+      const pe = prev ? (prev.drawEnd != null ? prev.drawEnd : prev.end) : 0;
+      if (lt < dur && prev && Math.abs(pe - ms) < 0.06) {
         const A = this.ensure(this.transA || (this.transA = mk(2, 2)), cw, ch), B = this.ensure(this.transB || (this.transB = mk(2, 2)), cw, ch);
         const bx = B.getContext('2d'); bx.setTransform(1, 0, 0, 1, 0, 0); bx.globalCompositeOperation = 'copy'; bx.drawImage(ctx.canvas, 0, 0); bx.globalCompositeOperation = 'source-over';
         this.frame(A.getContext('2d'), plan, Math.max(prev.start, prev.end - 1e-3), Object.assign({}, opt, { noTrans: true, noPost: true, noHud: true }));
