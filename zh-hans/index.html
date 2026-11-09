@@ -37319,7 +37319,7 @@ function renderLines() {
         <button class="icon ghost tapone" title="この1行だけタップで打ち直す（直前から播放して1回叩くだけ）" aria-label="${i + 1}行目だけタップ">${ICON.tapOne}</button>
         <button class="icon ghost tapfrom" title="从这一行重新轻点同步" aria-label="从第 ${i + 1} 行开始轻点">${ICON.tap}</button>
         <button class="icon ghost rng" title="设为导出范围（Shift+点击可扩大范围）" aria-pressed="${R && i >= R.from && i <= R.to ? 'true' : 'false'}" aria-label="将第 ${i + 1} 行设为导出范围">${ICON.range}</button>
-        ${ln.interlude ? '' : `<button class="icon ghost dice" title="重新随机这一行">${ICON.dice}</button>`}
+        <button class="icon ghost dice" title="重新随机这一行">${ICON.dice}</button>
         ${ln.interlude ? '' : `<button class="icon ghost lock" title="锁定这一行的编排" aria-pressed="${o.lock ? 'true' : 'false'}">${ICON.lock}</button>`}
         <button class="icon ghost del" title="删除此行" aria-label="删除第 ${i + 1} 行">${ICON.trash}</button>
       </span></div>`;
