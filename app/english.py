@@ -96,6 +96,8 @@ BODY = {
     'mp3 / wav / m4a など': 'MP3, WAV, M4A and more',
     '曲を読み込む': 'Import audio', '曲を再生しながら各行の頭でタップ': 'Tap at the start of each line while the song plays',
     '曲から下書き': 'Draft from audio', '曲の音の立ち上がり（オンセット・ビート）に合わせて全行の頭タイミングを自動で下書き配置します': 'Draft start timings for all lines to match audio onsets and beats',
+    '6つの候補から選ぶ': 'Choose from 6 variants',
+    '行の文字数や雰囲気に合わせた演出候補です。クリックすると即座に反映されます。': 'Preview candidate styles for this line. Click to apply instantly.',
     'タップで同期': 'Tap to sync', '開始(秒)': 'Start (s)', '行の長さ': 'Line duration',
     '拍にスナップ': 'Snap to beat', '手動タイミングを消す': 'Clear manual timing',
     '曲に合わせて、各行が始まる瞬間に': 'Press', 'かボタンを押してください。': 'or the button as each line starts.',

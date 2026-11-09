@@ -470,6 +470,86 @@ button.small.primary { padding: 4px 12px; }
 .overlay-item .ov-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .overlay-item label { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; color: var(--muted); }
 
+/* ---------- 6 Variants Selector ---------- */
+.variants-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  max-height: 68vh;
+  overflow-y: auto;
+  padding: 4px;
+}
+@media (max-width: 680px) {
+  .variants-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+}
+@media (max-width: 440px) {
+  .variants-grid { grid-template-columns: 1fr; }
+}
+.variant-card {
+  background: var(--bg-card, rgba(255,255,255,0.04));
+  border: 1px solid var(--border, rgba(255,255,255,0.12));
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+.variant-card:hover, .variant-card:focus-visible {
+  border-color: var(--cyan, #00e5ff);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0, 229, 255, 0.22);
+  outline: none;
+}
+.variant-cv-wrap {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.variant-cv {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.variant-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.variant-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--fg, #eee);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.variant-tag {
+  font-size: 0.68rem;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: rgba(0, 229, 255, 0.14);
+  color: var(--cyan, #00e5ff);
+  white-space: nowrap;
+}
+.variant-desc {
+  font-size: 0.72rem;
+  color: var(--muted, #999);
+  line-height: 1.35;
+  margin: 0;
+}
+
 </style>
 </head>
 <body>
@@ -819,6 +899,16 @@ button.small.primary { padding: 4px 12px; }
       <p>Xuất MP4:mp4-muxer（MIT License）<br>Phông chữ:Google Fonts phông chữ phân phối（SIL Open Font License 1.1）</p>
     </details>
     <div class="terms-foot"><span class="muted mono">© 2026 hakoniwa · MIT</span><button value="close" class="primary" autofocus>Đóng</button></div>
+  </form>
+</dialog>
+<dialog id="variantsDlg" class="terms" aria-labelledby="variantsTitle" style="max-width:780px;width:92vw;">
+  <form method="dialog">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;">
+      <h2 id="variantsTitle" style="margin:0;font-size:1.15rem;">6つの候補から選ぶ</h2>
+      <button value="cancel" class="ghost" style="padding:4px 10px;font-size:0.85rem;">✕ Đóng</button>
+    </div>
+    <p id="variantsSub" class="muted" style="margin:0 0 12px 0;font-size:0.82rem;">行の文字数やBầu không khíに合わせたHiệu ứng候補です。クリックすると即座に反映されます。</p>
+    <div id="variantsGrid" class="variants-grid"></div>
   </form>
 </dialog>
 
@@ -36253,6 +36343,7 @@ const ICON = {
   tap: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="2.2" fill="currentColor"/><circle cx="8" cy="8" r="5.5"/></svg>',
   tapOne: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6.2"/><path d="M7 6.5l1.6-.9v5.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   range: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 3v10M13 3v10"/><path d="M5.5 8h5M8.5 5.5L11 8l-2.5 2.5"/></svg>',
+  variants: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2" y="2.5" width="3.2" height="4.5" rx="0.8"/><rect x="6.4" y="2.5" width="3.2" height="4.5" rx="0.8"/><rect x="10.8" y="2.5" width="3.2" height="4.5" rx="0.8"/><rect x="2" y="9" width="3.2" height="4.5" rx="0.8"/><rect x="6.4" y="9" width="3.2" height="4.5" rx="0.8"/><rect x="10.8" y="9" width="3.2" height="4.5" rx="0.8"/></svg>',
 };
 
 const S = { project: null, plan: null, audio: null, renderer: new J.Renderer(), playing: false, t: 0, t0: 0, loop: 'all', loopHold: null, need: true, exporting: null, tap: null, slow: false, lineEls: [], curLine: -2 };
@@ -36881,6 +36972,122 @@ function fillCutPick() {
   queueThumbs(grid);
 }
 
+/* ---------------- 6-variant selector dialog ---------------- */
+function openVariants(lineIndex) {
+  const ln = S.plan.lines[lineIndex];
+  if (!ln || ln.interlude) return;
+  const dlg = $('variantsDlg'), grid = $('variantsGrid'), sub = $('variantsSub');
+  if (!dlg || !grid) return;
+  if (sub) sub.textContent = `${lineIndex + 1}dòng目「${ln.text}」（${ln.start.toFixed(2)}s〜${ln.end.toFixed(2)}s）のHiệu ứng候補です。クリックで適用されます。`;
+  grid.innerHTML = '';
+
+  const VARIANTS = [
+    {
+      title: '王道センター',
+      tag: '標準·見やすさ',
+      desc: '画面中央で安定した視認性とリズム感。どんな曲にもマッチ。',
+      patch: { layout: 'center', cuts: 1, kime: false, ugahame: false, morph: false, seed: (lineIndex + 1) * 111 }
+    },
+    {
+      title: 'キメ·超特大',
+      tag: 'サビ·強調',
+      desc: '画面いっぱいの超特大Chữ。ここぞという決めフレーズに。',
+      patch: { layout: 'huge', cuts: 1, kime: true, ugahame: false, morph: false, seed: (lineIndex + 1) * 222 }
+    },
+    {
+      title: '歌ハメ·刻み',
+      tag: 'リズム·1字打ち',
+      desc: '歌のテンポに合わせて1Chữずつ出現。疾走感や小気味よさ。',
+      patch: { layout: 'type', cuts: 1, ugahame: true, kime: false, morph: false, seed: (lineIndex + 1) * 333 }
+    },
+    {
+      title: '縦書き情緒',
+      tag: 'JPモダン·エモ',
+      desc: '情緒ある縦組み配置。バラードや余韻を残したい歌詞に。',
+      patch: { layout: 'vcols', cuts: 1, kime: false, ugahame: false, morph: false, seed: (lineIndex + 1) * 444 }
+    },
+    {
+      title: '斜め疾走感',
+      tag: 'ChữPV王道',
+      desc: '対角線の大胆なアングル。勢いのあるアップテンポに最適。',
+      patch: { layout: 'diag', cuts: 1, kime: false, ugahame: false, morph: false, seed: (lineIndex + 1) * 555 }
+    },
+    {
+      title: '散らし·変形',
+      tag: 'POP·モダン',
+      desc: 'Chữごとの散らし配置とモーフHiệu ứng。トリッキーで現代的。',
+      patch: { layout: 'scatter', cuts: 1, morph: true, kime: false, ugahame: false, seed: (lineIndex + 1) * 666 }
+    }
+  ];
+
+  const curOv = S.project.overrides[lineIndex] || {};
+
+  VARIANTS.forEach((v) => {
+    const tempProject = JSON.parse(JSON.stringify(S.project));
+    if (!tempProject.overrides) tempProject.overrides = {};
+    const merged = Object.assign({}, curOv, v.patch);
+    for (const k of Object.keys(merged)) if (merged[k] === false || merged[k] === undefined || merged[k] === '') delete merged[k];
+    tempProject.overrides[lineIndex] = merged;
+
+    let tempPlan = null;
+    try {
+      tempPlan = J.plan(tempProject, S.audio);
+    } catch (e) {
+      tempPlan = S.plan;
+    }
+
+    const card = document.createElement('div');
+    card.className = 'variant-card';
+    card.tabIndex = 0;
+    card.innerHTML = `
+      <div class="variant-cv-wrap"></div>
+      <div class="variant-header">
+        <span class="variant-title">${v.title}</span>
+        <span class="variant-tag">${v.tag}</span>
+      </div>
+      <p class="variant-desc">${v.desc}</p>
+    `;
+
+    const cv = document.createElement('canvas');
+    cv.width = 320;
+    cv.height = 180;
+    cv.className = 'variant-cv';
+    const ctx = cv.getContext('2d');
+
+    if (tempPlan) {
+      const cuts = tempPlan.cuts.filter(c => c.line === lineIndex);
+      const targetCut = cuts[0] || cutAround(ln.start);
+      const midT = targetCut ? targetCut.start + Math.min(targetCut.dur * 0.5, targetCut.inDur + 0.1) : ln.start + 0.1;
+      try {
+        S.renderer.frame(ctx, tempPlan, midT, { scale: 320 / tempPlan.W, fast: true, noHud: true, noGhost: true });
+      } catch (err) {
+        ctx.fillStyle = '#111'; ctx.fillRect(0, 0, 320, 180);
+        ctx.fillStyle = '#eee'; ctx.font = 'bold 20px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(v.title, 160, 95);
+      }
+    }
+
+    card.querySelector('.variant-cv-wrap').appendChild(cv);
+
+    const select = () => {
+      remember();
+      setOv(lineIndex, v.patch);
+      replan();
+      commit();
+      flushSave();
+      renderLines();
+      dlg.close();
+      seek(ln.start + 0.001);
+      toast(`${lineIndex + 1}dòng目を「${v.title}」に変更しました`);
+    };
+
+    card.addEventListener('click', select);
+    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(); } });
+    grid.appendChild(card);
+  });
+
+  dlg.showModal();
+}
+
 /* ---------------- line list ---------------- */
 function renderLines() {
   const ol = $('lineList'); ol.innerHTML = ''; S.lineEls = []; S.curLine = -2;
@@ -36909,6 +37116,7 @@ function renderLines() {
       <div class="meta"><span class="cuts"></span>
       <span class="tools">
         <button class="icon ghost edit" title="Chỉnh sửa lời bài hát" aria-label="Chỉnh sửa lời bài hát trên ${i + 1}">${ICON.pen}</button>
+        ${ln.interlude ? '' : `<button class="icon ghost variants" title="このdòngの6つの候補から選ぶ" aria-label="${i + 1}dòng目の6つの候補">${ICON.variants}</button>`}
         ${ln.interlude ? '' : `<select class="ncut" aria-label="Số lần cắt trong hàng ${i + 1}">${cutOpts}</select>`}
         ${ln.interlude ? '' : `<select class="lay pro-only" aria-label="Chọn bố cục"></select>`}
         <button class="icon ghost tapone" title="この1dòngだけタップで打ち直す（直前からPhátして1回叩くだけ）" aria-label="${i + 1}dòng目だけタップ">${ICON.tapOne}</button>
@@ -36918,6 +37126,7 @@ function renderLines() {
         ${ln.interlude ? '' : `<button class="icon ghost lock" title="Khóa cách sắp xếp hàng này" aria-pressed="${o.lock ? 'true' : 'false'}">${ICON.lock}</button>`}
       </span></div>`;
     const q = sel => li.querySelector(sel);
+    if (q('.variants')) q('.variants').addEventListener('click', () => openVariants(i));
     if (q('.lay')) lazyLay(q('.lay'), o.layout || '');
     if (q('.ncut')) q('.ncut').value = o.cuts ? String(o.cuts) : '';
     q('.time').addEventListener('change', e => {

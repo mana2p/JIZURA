@@ -446,3 +446,83 @@ button.small.primary { padding: 4px 12px; }
 .overlay-item img { width: 32px; height: 32px; object-fit: contain; background: #000; border-radius: 2px; }
 .overlay-item .ov-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .overlay-item label { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; color: var(--muted); }
+
+/* ---------- 6 Variants Selector ---------- */
+.variants-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  max-height: 68vh;
+  overflow-y: auto;
+  padding: 4px;
+}
+@media (max-width: 680px) {
+  .variants-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+}
+@media (max-width: 440px) {
+  .variants-grid { grid-template-columns: 1fr; }
+}
+.variant-card {
+  background: var(--bg-card, rgba(255,255,255,0.04));
+  border: 1px solid var(--border, rgba(255,255,255,0.12));
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+.variant-card:hover, .variant-card:focus-visible {
+  border-color: var(--cyan, #00e5ff);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0, 229, 255, 0.22);
+  outline: none;
+}
+.variant-cv-wrap {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.variant-cv {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.variant-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.variant-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--fg, #eee);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.variant-tag {
+  font-size: 0.68rem;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: rgba(0, 229, 255, 0.14);
+  color: var(--cyan, #00e5ff);
+  white-space: nowrap;
+}
+.variant-desc {
+  font-size: 0.72rem;
+  color: var(--muted, #999);
+  line-height: 1.35;
+  margin: 0;
+}

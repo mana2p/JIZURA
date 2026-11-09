@@ -345,3 +345,13 @@
     <div class="terms-foot"><span class="muted mono">© 2026 hakoniwa · MIT</span><button value="close" class="primary" autofocus>閉じる</button></div>
   </form>
 </dialog>
+<dialog id="variantsDlg" class="terms" aria-labelledby="variantsTitle" style="max-width:780px;width:92vw;">
+  <form method="dialog">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;">
+      <h2 id="variantsTitle" style="margin:0;font-size:1.15rem;">6つの候補から選ぶ</h2>
+      <button value="cancel" class="ghost" style="padding:4px 10px;font-size:0.85rem;">✕ 閉じる</button>
+    </div>
+    <p id="variantsSub" class="muted" style="margin:0 0 12px 0;font-size:0.82rem;">行の文字数や雰囲気に合わせた演出候補です。クリックすると即座に反映されます。</p>
+    <div id="variantsGrid" class="variants-grid"></div>
+  </form>
+</dialog>
