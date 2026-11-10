@@ -152,8 +152,10 @@ button.tap { font: 700 18px/1 var(--mono); letter-spacing: 0.2em; padding: 16px;
   font-size: 8px; line-height: 1; flex: none; width: 18px; user-select: none;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
-.ln .time-btn:hover { color: var(--text); border-color: var(--amber); background: var(--line2); }
-.ln .time-btn:active { background: var(--amber); color: #120c00; }
+.ln .time-wrap .time-btn:hover { color: var(--text); border-color: var(--cyan); background: var(--line2); }
+.ln .time-wrap .time-btn:active { background: var(--cyan); border-color: var(--cyan); color: #001411; }
+.ln .cut-time-wrap .time-btn:hover { color: var(--text); border-color: var(--amber); background: var(--line2); }
+.ln .cut-time-wrap .time-btn:active { background: var(--amber); border-color: var(--amber); color: #120c00; }
 .ln .time-prev { border-radius: var(--r) 0 0 var(--r); border-right: 0; }
 .ln .time-next { border-radius: 0 var(--r) var(--r) 0; border-left: 0; }
 .ln .time-wrap .time, .ln .cut-time-wrap .cut-time {
@@ -188,7 +190,8 @@ button.tap { font: 700 18px/1 var(--mono); letter-spacing: 0.2em; padding: 16px;
 .transport .vol input[type=range] { flex: 0 0 80px; width: 80px; }
 #btnLoop[data-mode="line"], #btnLoop[data-mode="cut"] { color: var(--amber); }
 #btnLoop[aria-pressed="false"] { opacity: 0.55; }
-.transport .tc { font: 500 13px var(--mono); font-variant-numeric: tabular-nums; }
+.transport .tc { font: 500 13px var(--mono); font-variant-numeric: tabular-nums; cursor: pointer; user-select: none; transition: color 0.15s; }
+.transport .tc:hover { color: var(--cyan); }
 .transport input[type=range] { flex: 1 1 160px; accent-color: var(--amber); }
 button.play { width: 40px; height: 34px; padding: 0; font-size: 14px; }
 /* timeline controls, export range, line tools */
@@ -4224,8 +4227,8 @@ J.plan = (project, audio) => {
       if (morph) cut.morph = morph;
       if (UU) UU.remember(li, k, txt, cut);
       if (zones) splitCut(cut, halves, zones, st, dur, LS);
-      // 効果控えめ (typesetRestraint): 装飾最大1個、文字加工との重複禁止
-      if (plan.typesetRestraint) { cut.decor = cut.decor.slice(0, 1); if (cut.decor.length && cut.treat !== 'none') { cut.treat = 'none'; cut.treatP = {}; } }
+      // 効果控えめ (typesetRestraint): 装飾最大1個、文字加工との重複禁止（カット個別指定がある場合は優先）
+      if (plan.typesetRestraint) { if (!tech.decor) cut.decor = cut.decor.slice(0, 1); if (cut.decor.length && cut.treat !== 'none' && !tech.treat && !tech.decor) { cut.treat = 'none'; cut.treatP = {}; } }
       plan.cuts.push(cut);
       const evMark = plan.events.length;
       // history = what the draw gave (with the usual join), so a per-cut pick never shifts the later cuts
@@ -59497,9 +59500,14 @@ function tick(now) {
   }
   if (S.need) { S.need = false; draw(); }
 }
+let tcSecMode = false;
+try { tcSecMode = localStorage.getItem('jizura.tcSec') === '1'; } catch (e) {}
+function fmtTc(t) {
+  return tcSecMode ? `${Math.max(0, t || 0).toFixed(2)}s` : J.fmtTime(t);
+}
 function updateTimeUI() {
-  $('timeNow').textContent = J.fmtTime(S.t);
-  $('timeDur').textContent = J.fmtTime(S.plan.duration);
+  $('timeNow').textContent = fmtTc(S.t);
+  $('timeDur').textContent = fmtTc(S.plan.duration);
   if (!S.scrubbing) $('scrub').value = String(Math.round(S.t / Math.max(0.001, S.plan.duration) * 10000));
 }
 // タップ同期の速さ (0.5× / 0.75×): only while tapping — the song's own time is what gets stored
@@ -59749,6 +59757,39 @@ function rerollCurrentCut(kind) {
   seek(t0);
   toast(kind === 'omakase' ? '這個鏡頭隨機生成' : '洗牌這個鏡頭');
 }
+let copiedCutTech = null;
+function copyCurrentCut() {
+  const cut = J.cutAt(S.plan, S.t);
+  const k = lyricCutK(cut);
+  if (!cut || k < 0) { toast('この位置の 個片段はコピーできません'); return; }
+  const data = {};
+  CHIP_GROUPS.forEach(([g]) => {
+    const v = cutGroupVal(cut, g);
+    data[g] = v || 'none';
+  });
+  copiedCutTech = data;
+  lastCutIdx = -2;
+  updateCutInfo();
+  toast(` 個片段 #${String(cut.index + 1).padStart(2, '0')} の效果をコピーしました`);
+}
+function pasteCurrentCut() {
+  if (S.exporting || S.tap) return;
+  if (!copiedCutTech) { toast('コピーされた效果がありません'); return; }
+  const cut = J.cutAt(S.plan, S.t);
+  const k = lyricCutK(cut);
+  if (!cut || k < 0) { toast('この位置の 個片段には貼り付けできません'); return; }
+  remember();
+  freezeOtherLines(cut.line);
+  const t0 = S.t;
+  CHIP_GROUPS.forEach(([g]) => {
+    if (copiedCutTech[g] != null) setCutTech(cut.line, k, g, copiedCutTech[g]);
+  });
+  closeCutPick();
+  replan();
+  commit();
+  seek(t0);
+  toast(` 個片段 #${String(cut.index + 1).padStart(2, '0')} に效果を貼り付けました`);
+}
 function updateCutInfo() {
   const cut = J.cutAt(S.plan, S.t);
   const idx = cut ? cut.index : -1;
@@ -59761,10 +59802,11 @@ function updateCutInfo() {
   if (cut && S.lineEls[li]) { const kk = lyricCutK(cut), cs = kk >= 0 && S.lineEls[li].querySelector(`.cut-lay[data-k="${kk}"]`); if (cs) cs.classList.add('playing'); }
   const el = $('cutInfo');
   if (!cut) { el.innerHTML = '<span class="hint">這個位置沒有片段</span>'; closeCutPick(); return; }
-  if (S.mode !== 'pro') {          // かんたん／スマホは本家と同じ静的なチップ表示
+  const k = lyricCutK(cut);
+  if (S.mode !== 'pro') {          // かんたん／スマホは静的なチップ表示＋コピー、貼り付け
     closeCutPick();
-    const chip = (cls, k, v) => `<span class="chip ${cls}"><b>${k}</b>${v}</span>`;
-    const n = (tbl, k) => (tbl[k] ? tbl[k].name : k);
+    const chip = (cls, k2, v) => `<span class="chip ${cls}"><b>${k2}</b>${v}</span>`;
+    const n = (tbl, k2) => (tbl[k2] ? tbl[k2].name : k2);
     el.innerHTML = [
       `<span class="chip mono">#${String(cut.index + 1).padStart(2, '0')}</span>`,
       chip('l', '版面', n(J.LAYOUTS, cut.layout)), chip('e', '進場', n(J.ENTER, cut.enter)), chip('h', '停留', n(J.HOLD, cut.hold)), chip('x', '退場', n(J.EXIT, cut.exit)),
@@ -59773,10 +59815,15 @@ function updateCutInfo() {
       cut.bg && cut.bg !== 'none' ? chip('b', '背景', n(J.BG, cut.bg)) : '',
       cut.cam && cut.cam !== 'push' ? chip('c', '運鏡', n(J.CAMERA, cut.cam)) : '',
       cut.trans ? chip('c', '轉場', n(J.TRANS, cut.trans)) : '',
+      `<button type="button" class="ghost small cut-copy" ${k < 0 ? 'disabled' : ''} title="この 個片段の效果一式をコピー（C キー）">コピー</button>`,
+      `<button type="button" class="ghost small cut-paste" ${k < 0 || !copiedCutTech ? 'disabled' : ''} title="コピーした效果一式をこの 個片段に貼り付け（V キー）">貼り付け</button>`,
     ].join('');
+    if (k >= 0) {
+      el.querySelector('.cut-copy')?.addEventListener('click', copyCurrentCut);
+      el.querySelector('.cut-paste')?.addEventListener('click', pasteCurrentCut);
+    }
     return;
   }
-  const k = lyricCutK(cut);
   const slot = k >= 0 ? cutTechSlot(cut.line, k) : {};
   const quiet = k >= 0 ? cutQuietSlot(cut.line, k) : {};
   const bits = [`<span class="chip mono">#${String(cut.index + 1).padStart(2, '0')}</span>`];
@@ -59784,11 +59831,15 @@ function updateCutInfo() {
     const forced = slot[g] != null && slot[g] !== '' && !quiet[g];
     bits.push(`<button type="button" class="chip ${cls}${forced ? ' is-forced' : ''}" data-g="${g}" aria-pressed="${cutPick.g === g ? 'true' : 'false'}" ${k < 0 ? 'disabled' : ''}><b>${label}</b>${escapeHtml(groupName(g, cutGroupVal(cut, g)))}</button>`);
   });
+  bits.push(`<button type="button" class="ghost small cut-copy" ${k < 0 ? 'disabled' : ''} title="この 個片段の效果一式をコピー（C キー）">コピー</button>`);
+  bits.push(`<button type="button" class="ghost small cut-paste" ${k < 0 || !copiedCutTech ? 'disabled' : ''} title="コピーした效果一式をこの 個片段に貼り付け（V キー）">貼り付け</button>`);
   bits.push(`<button type="button" class="ghost small cut-roll" data-roll="shuffle" ${k < 0 ? 'disabled' : ''} title="只重新抽選這個鏡頭的編排">洗牌</button>`);
   bits.push(`<button type="button" class="ghost small cut-roll accent" data-roll="omakase" ${k < 0 ? 'disabled' : ''} title="只把這個鏡頭的手法隨機化">隨機生成</button>`);
   el.innerHTML = bits.join('');
   if (k >= 0) {
     el.querySelectorAll('button.chip[data-g]').forEach(b => b.addEventListener('click', () => toggleCutPick(b.dataset.g, cut, k)));
+    el.querySelector('.cut-copy')?.addEventListener('click', copyCurrentCut);
+    el.querySelector('.cut-paste')?.addEventListener('click', pasteCurrentCut);
     el.querySelectorAll('button.cut-roll').forEach(b => b.addEventListener('click', () => rerollCurrentCut(b.dataset.roll)));
   }
   followCutPick(cut, k);
@@ -61292,6 +61343,15 @@ function bind() {
   $('tapCount').addEventListener('change', () => { saveTapOpts(); $('tapBtn').focus(); });
   $('tapStop').addEventListener('click', () => { pause(); stopTap(); });
   $('btnPlay').addEventListener('click', () => (S.playing ? pause() : play()));
+  document.querySelectorAll('.transport .tc').forEach(el => {
+    el.title = 'クリックで「分:秒 ⇄ 秒」表示を切り替え';
+    el.addEventListener('click', () => {
+      tcSecMode = !tcSecMode;
+      try { localStorage.setItem('jizura.tcSec', tcSecMode ? '1' : '0'); } catch (e) {}
+      updateTimeUI();
+      toast(tcSecMode ? '時間表示：秒（例 106.25s）' : '時間表示：分:秒（例 01:46.25）');
+    });
+  });
   const cutPickAuto = $('cutPickAuto'), cutPickClose = $('cutPickClose');
   if (cutPickClose) cutPickClose.addEventListener('click', () => { closeCutPick(); updateCutInfo(); });
   if (cutPickAuto) cutPickAuto.addEventListener('click', () => {
@@ -61536,13 +61596,15 @@ function bind() {
     if (S.tap && e.code === 'Tab' && !typing) { e.preventDefault(); tapCut(); return; }
     if ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ' && !typing && !S.tap) { e.preventDefault(); edGo(e.shiftKey ? 1 : -1); return; }
     if ((e.ctrlKey || e.metaKey) && e.code === 'KeyY' && !typing && !S.tap) { e.preventDefault(); edGo(1); return; }
-    if (typing || $('termsDlg').open || $('resetDlg').open) return;
+    if (typing || $('termsDlg').open || $('resetDlg').open || ($('variantsDlg') && $('variantsDlg').open)) return;
     if (e.code === 'Space') { e.preventDefault(); S.playing ? pause() : play(); }
     else if (e.code === 'ArrowRight') seek(S.t + (e.shiftKey ? 1 : 1 / S.plan.fps));
     else if (e.code === 'ArrowLeft') seek(S.t - (e.shiftKey ? 1 : 1 / S.plan.fps));
     else if (e.code === 'KeyR' && !e.metaKey && !e.ctrlKey && !e.altKey && !S.exporting) { e.preventDefault(); omakase(); }
     else if (e.code === 'KeyD' && !e.metaKey && !e.ctrlKey && !e.altKey) { const i = lineAtPlayhead(); if (i >= 0) { e.preventDefault(); rerollLine(i); } }
     else if (e.code === 'KeyL' && !e.metaKey && !e.ctrlKey && !e.altKey) { const i = lineAtPlayhead(); if (i >= 0) { e.preventDefault(); toggleLineLock(i); } }
+    else if (e.code === 'KeyC' && !e.metaKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); copyCurrentCut(); }
+    else if (e.code === 'KeyV' && !e.metaKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); pasteCurrentCut(); }
   });
   window.addEventListener('resize', () => { sizeViewport(); drawTimeline(); });
   if (window.ResizeObserver) new ResizeObserver(() => { sizeViewport(); drawTimeline(); }).observe($('viewport'));

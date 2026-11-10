@@ -577,8 +577,8 @@ J.plan = (project, audio) => {
       if (morph) cut.morph = morph;
       if (UU) UU.remember(li, k, txt, cut);
       if (zones) splitCut(cut, halves, zones, st, dur, LS);
-      // 効果控えめ (typesetRestraint): 装飾最大1個、文字加工との重複禁止
-      if (plan.typesetRestraint) { cut.decor = cut.decor.slice(0, 1); if (cut.decor.length && cut.treat !== 'none') { cut.treat = 'none'; cut.treatP = {}; } }
+      // 効果控えめ (typesetRestraint): 装飾最大1個、文字加工との重複禁止（カット個別指定がある場合は優先）
+      if (plan.typesetRestraint) { if (!tech.decor) cut.decor = cut.decor.slice(0, 1); if (cut.decor.length && cut.treat !== 'none' && !tech.treat && !tech.decor) { cut.treat = 'none'; cut.treatP = {}; } }
       plan.cuts.push(cut);
       const evMark = plan.events.length;
       // history = what the draw gave (with the usual join), so a per-cut pick never shifts the later cuts

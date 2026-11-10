@@ -129,8 +129,10 @@ button.tap { font: 700 18px/1 var(--mono); letter-spacing: 0.2em; padding: 16px;
   font-size: 8px; line-height: 1; flex: none; width: 18px; user-select: none;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
-.ln .time-btn:hover { color: var(--text); border-color: var(--amber); background: var(--line2); }
-.ln .time-btn:active { background: var(--amber); color: #120c00; }
+.ln .time-wrap .time-btn:hover { color: var(--text); border-color: var(--cyan); background: var(--line2); }
+.ln .time-wrap .time-btn:active { background: var(--cyan); border-color: var(--cyan); color: #001411; }
+.ln .cut-time-wrap .time-btn:hover { color: var(--text); border-color: var(--amber); background: var(--line2); }
+.ln .cut-time-wrap .time-btn:active { background: var(--amber); border-color: var(--amber); color: #120c00; }
 .ln .time-prev { border-radius: var(--r) 0 0 var(--r); border-right: 0; }
 .ln .time-next { border-radius: 0 var(--r) var(--r) 0; border-left: 0; }
 .ln .time-wrap .time, .ln .cut-time-wrap .cut-time {
@@ -165,7 +167,8 @@ button.tap { font: 700 18px/1 var(--mono); letter-spacing: 0.2em; padding: 16px;
 .transport .vol input[type=range] { flex: 0 0 80px; width: 80px; }
 #btnLoop[data-mode="line"], #btnLoop[data-mode="cut"] { color: var(--amber); }
 #btnLoop[aria-pressed="false"] { opacity: 0.55; }
-.transport .tc { font: 500 13px var(--mono); font-variant-numeric: tabular-nums; }
+.transport .tc { font: 500 13px var(--mono); font-variant-numeric: tabular-nums; cursor: pointer; user-select: none; transition: color 0.15s; }
+.transport .tc:hover { color: var(--cyan); }
 .transport input[type=range] { flex: 1 1 160px; accent-color: var(--amber); }
 button.play { width: 40px; height: 34px; padding: 0; font-size: 14px; }
 /* timeline controls, export range, line tools */
